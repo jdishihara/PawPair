@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "pawpal",
-    "slug": "pawpal",
+    "name": "PawPair",
+    "slug": "PawPair",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "pawpal",
+    "scheme": "PawPair",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
