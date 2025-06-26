@@ -1,21 +1,24 @@
 // app/index.tsx
-
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import AuthFlow from './AuthFlow';
+
+import AuthFlow, { UserType } from './AuthFlow';
 import DogSitterSwipe from './DogSitterSwipe';
+import MatchSwipeScreen from './MatchSwipeScreen';
 
-export default function Index() {
-  const [isAuth, setIsAuth] = useState(false);
+export default function IndexRoute() {
+  const [userType, setUserType] = useState<UserType | null>(null);
 
-  if (!isAuth) {
-    return <AuthFlow onAuthComplete={() => setIsAuth(true)} />;
+  if (!userType) {
+    return <AuthFlow onAuthComplete={(type) => setUserType(type)} />;
   }
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Once logged in, you can switch between screens as you like: */}
-      <DogSitterSwipe />
+      {userType === 'owner'
+        ? <DogSitterSwipe />
+        : <MatchSwipeScreen />
+      }
     </View>
   );
 }
