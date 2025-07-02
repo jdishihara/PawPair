@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { clearCurrentUser, getCurrentUser } from '../utils/userStorage';
 import { UserProfile } from './AuthFlow';
+import EditProfileScreen from './EditProfileScreen';
 
 interface OwnerProfileScreenProps {
   onLogout?: () => void;
@@ -11,6 +12,7 @@ interface OwnerProfileScreenProps {
 export default function OwnerProfileScreen({ onLogout }: OwnerProfileScreenProps) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     loadUserProfile();
@@ -45,6 +47,19 @@ export default function OwnerProfileScreen({ onLogout }: OwnerProfileScreenProps
     );
   };
 
+  const handleEditProfile = () => {
+    setIsEditing(true);
+  };
+
+  const handleSaveProfile = (updatedProfile: UserProfile) => {
+    setUserProfile(updatedProfile);
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -61,6 +76,16 @@ export default function OwnerProfileScreen({ onLogout }: OwnerProfileScreenProps
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>
+    );
+  }
+
+  if (isEditing) {
+    return (
+      <EditProfileScreen
+        userProfile={userProfile}
+        onSave={handleSaveProfile}
+        onCancel={handleCancelEdit}
+      />
     );
   }
 
@@ -150,6 +175,10 @@ export default function OwnerProfileScreen({ onLogout }: OwnerProfileScreenProps
         </View>
       )}
       
+      <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
+        <Text style={styles.editButtonText}>Edit Profile</Text>
+      </TouchableOpacity>
+      
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
@@ -188,11 +217,23 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     color: '#374151'
   },
+  editButton: {
+    backgroundColor: '#2563eb',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 20,
+    minWidth: 120,
+    alignItems: 'center'
+  },
+  editButtonText: {
+    color: '#fff',
+    fontWeight: 'bold'
+  },
   logoutButton: {
     backgroundColor: '#dc2626',
     padding: 12,
     borderRadius: 8,
-    marginTop: 20,
+    marginTop: 12,
     minWidth: 120,
     alignItems: 'center'
   },

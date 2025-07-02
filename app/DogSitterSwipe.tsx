@@ -1,52 +1,16 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
-  Dimensions,
-  Image,
   StyleSheet,
   Text,
   TouchableWithoutFeedback,
   View
 } from 'react-native';
 import Swiper from 'react-native-deck-swiper';
+import { UserProfile } from './AuthFlow';
+import { getUsersByType } from '../utils/userStorage';
 
-export type SitterProfile = {
-  id: number;
-  name: string;
-  experience: string;
-  image: string;
-  age: string;
-  about: string;
-};
-
-const sitterProfiles: SitterProfile[] = [
-  {
-    id: 1,
-    name: 'Alex ❤️',
-    experience: '5 years with labs and retrievers',
-    image: 'https://randomuser.me/api/portraits/men/32.jpg',
-    age: '28 years old',
-    about: 'Loves long walks, fetch sessions, and giving treats! Great with large dogs.'
-  },
-  {
-    id: 2,
-    name: 'Jamie 🐾',
-    experience: 'Worked at a dog daycare',
-    image: 'https://randomuser.me/api/portraits/women/44.jpg',
-    age: '32 years old',
-    about: 'Super active and love dogs of all sizes! Experienced with training and socialization.'
-  },
-  {
-    id: 3,
-    name: 'Taylor 🐕',
-    experience: 'Vet assistant & lifelong dog lover',
-    image: 'https://randomuser.me/api/portraits/men/76.jpg',
-    age: '26 years old',
-    about: 'Calm, responsible, and great with nervous pups. Medical background helps with special needs.'
-  }
-];
-
-const FlipCard = ({ profile }: { profile: SitterProfile }) => {
+const FlipCard = ({ profile }: { profile: UserProfile }) => {
   const flipAnim = useRef(new Animated.Value(0)).current;
   const [isFlipped, setIsFlipped] = useState(false);
 
@@ -54,39 +18,87 @@ const FlipCard = ({ profile }: { profile: SitterProfile }) => {
     inputRange: [0, 180],
     outputRange: ['0deg', '180deg']
   });
+
   const backRotateY = flipAnim.interpolate({
     inputRange: [0, 180],
     outputRange: ['180deg', '360deg']
   });
 
   const flip = () => {
-    const nextValue = isFlipped ? 0 : 180;
+    setIsFlipped(!isFlipped);
     Animated.spring(flipAnim, {
-      toValue: nextValue,
+      toValue: isFlipped ? 0 : 180,
       useNativeDriver: true,
       friction: 8,
       tension: 40
-    }).start(() => setIsFlipped(!isFlipped));
+    }).start();
   };
 
   return (
     <TouchableWithoutFeedback onPress={flip}>
       <View style={styles.card}>
-        {/* Front side */}
-        <Animated.View
-          style={[styles.cardFace, { transform: [{ rotateY: frontRotateY }] }]}>
-          <Image source={{ uri: profile.image }} style={styles.image} />
-          <Text style={styles.name}>{profile.name}</Text>
-          <Text style={styles.experience}>{profile.experience}</Text>
-          <Text style={styles.hint}>Tap to see more</Text>
+        {/* Front of card - Sitter Info */}
+        <Animated.View 
+          style={[
+            styles.cardFace, 
+            { transform: [{ rotateY: frontRotateY }] }
+          ]}
+        >
+          <View style={styles.sitterImagePlaceholder}>
+            <Text style={styles.sitterEmoji}>❤️</Text>
+          </View>
+          <Text style={styles.sitterName}>{profile.firstName} {profile.lastName}</Text>
+          {profile.experience && (
+            <Text style={styles.experience}>Experience: {profile.experience}</Text>
+          )}
+          {profile.maxDistance && (
+            <Text style={styles.sitterInfo}>Travels up to {profile.maxDistance} miles</Text>
+          )}
+          <Text style={styles.contactInfo}>📞 {profile.phone}</Text>
+          <Text style={styles.hint}>Tap to see more details</Text>
         </Animated.View>
 
-        {/* Back side */}
-        <Animated.View
-          style={[styles.cardFace, styles.cardBack, { transform: [{ rotateY: backRotateY }] }]}>
-          <Text style={styles.name}>{profile.name}</Text>
-          <Text style={styles.experience}>{profile.age}</Text>
-          <Text style={styles.about}>{profile.about}</Text>
+        {/* Back of card - Detailed Info */}
+        <Animated.View 
+          style={[
+            styles.cardFace, 
+            styles.cardBack, 
+            { transform: [{ rotateY: backRotateY }] }
+          ]}
+        >
+          <Text style={styles.sitterName}>{profile.firstName} {profile.lastName}</Text>
+          
+          <View style={styles.contactSection}>
+            <Text style={styles.contactInfo}>📞 {profile.phone}</Text>
+            <Text style={styles.contactInfo}>📧 {profile.email}</Text>
+          </View>
+          
+          {profile.experience && (
+            <View style={styles.infoSection}>
+              <Text style={styles.sectionTitle}>Experience</Text>
+              <Text style={styles.sectionContent}>{profile.experience}</Text>
+            </View>
+          )}
+          
+          {profile.maxDistance && (
+            <View style={styles.infoSection}>
+              <Text style={styles.sectionTitle}>Service Area</Text>
+              <Text style={styles.sectionContent}>Travels up to {profile.maxDistance} miles</Text>
+            </View>
+          )}
+          
+          {profile.homeType && (
+            <View style={styles.infoSection}>
+              <Text style={styles.sectionTitle}>Home Environment</Text>
+              <Text style={styles.sectionContent}>
+                {profile.homeType.replace(/_/g, ' ')}
+                {profile.hasOtherPets !== undefined && 
+                  ` • ${profile.hasOtherPets ? 'Has other pets' : 'No other pets'}`
+                }
+              </Text>
+            </View>
+          )}
+          
           <Text style={styles.hint}>Tap to flip back</Text>
         </Animated.View>
       </View>
@@ -95,56 +107,92 @@ const FlipCard = ({ profile }: { profile: SitterProfile }) => {
 };
 
 export default function DogSitterSwipe() {
+  const [dogSitters, setDogSitters] = useState<UserProfile[]>([]);
   const [swipeLabel, setSwipeLabel] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadDogSitters();
+  }, []);
+
+  const loadDogSitters = async () => {
+    try {
+      const sitters = await getUsersByType('sitter');
+      setDogSitters(sitters);
+    } catch (error) {
+      console.error('Error loading dog sitters:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSwipeRight = (index: number) => {
+    const sitter = dogSitters[index];
+    if (sitter) {
+      console.log('Interested in sitter:', sitter.firstName, sitter.lastName);
+      // TODO: Save this match/interest
+    }
+    setSwipeLabel(null);
+  };
+
+  const handleSwipeLeft = (index: number) => {
+    const sitter = dogSitters[index];
+    if (sitter) {
+      console.log('Passed on sitter:', sitter.firstName, sitter.lastName);
+      // TODO: Save this pass
+    }
+    setSwipeLabel(null);
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.loadingText}>Loading available sitters...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       {swipeLabel && (
         <View style={styles.overlay}>
-          <Text
-            style={swipeLabel === 'PASS ❌' ? styles.pass : styles.interested}>
+          <Text style={swipeLabel === 'PASS ❌' ? styles.pass : styles.interested}>
             {swipeLabel}
           </Text>
         </View>
       )}
-
+      
+      <View style={styles.instructions}>
+        <Text style={styles.instructionsText}>Swipe right if you'd like this sitter to care for your dog!</Text>
+      </View>
+      
       <Swiper
-        cards={sitterProfiles}
-        renderCard={(card: SitterProfile | null) => {
-          if (!card) {
+        cards={dogSitters}
+        renderCard={(sitter: UserProfile | undefined) => {
+          if (!sitter) {
             return (
-              <View style={[styles.card, styles.noMoreCard]}>
-                <Text style={styles.noMoreText}>No more sitters 🐕</Text>
-                <Text style={styles.noMoreSubtext}>
-                  Check back later for more matches
-                </Text>
+              <View style={[styles.card, styles.centered]}>
+                <Text style={styles.emptyTitle}>No more sitters! ❤️</Text>
+                <Text style={styles.emptySubtitle}>Check back later for new caregivers</Text>
               </View>
             );
           }
-          return <FlipCard profile={card} />;
+
+          return <FlipCard profile={sitter} />;
         }}
-        onSwipedRight={(index: number) => {
-          console.log('Interested in:', sitterProfiles[index]?.name);
-          setSwipeLabel(null);
-        }}
-        onSwipedLeft={(index: number) => {
-          console.log('Passed on:', sitterProfiles[index]?.name);
-          setSwipeLabel(null);
-        }}
+        onSwipedRight={handleSwipeRight}
+        onSwipedLeft={handleSwipeLeft}
         onSwiping={(x: number) => {
-          if (x > 50) setSwipeLabel('INTERESTED ✅');
-          else if (x < -50) setSwipeLabel('PASS ❌');
-          else setSwipeLabel(null);
+          if (x > 50) {
+            setSwipeLabel('INTERESTED ❤️');
+          } else if (x < -50) {
+            setSwipeLabel('PASS ❌');
+          } else {
+            setSwipeLabel(null);
+          }
         }}
         stackSize={3}
-        backgroundColor="transparent"
-        animateOverlayLabelsOpacity
-        animateCardOpacity
-        disableBottomSwipe
-        disableTopSwipe
-        verticalSwipe={false}
-        cardVerticalMargin={60}
-        cardHorizontalMargin={20}
+        backgroundColor={'#f0f0f0'}
       />
     </View>
   );
@@ -154,7 +202,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 80,
-    backgroundColor: '#f5f5f5'
+    backgroundColor: '#fff'
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  instructions: {
+    paddingHorizontal: 20,
+    marginBottom: 20
+  },
+  instructionsText: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#6b7280',
+    fontWeight: '500'
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#6b7280',
+    textAlign: 'center'
   },
   card: {
     borderRadius: 12,
@@ -164,7 +231,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84
+    shadowRadius: 3.84,
   },
   cardFace: {
     position: 'absolute',
@@ -179,56 +246,84 @@ const styles = StyleSheet.create({
     backfaceVisibility: 'hidden'
   },
   cardBack: {
-    backgroundColor: '#f8f8f8'
+    backgroundColor: '#f8f9fa',
   },
-  image: {
-    width: Dimensions.get('window').width * 0.7,
-    height: 280,
-    borderRadius: 12,
+  sitterImagePlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#fef3c7',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 20
   },
-  name: {
-    fontSize: 24,
+  sitterEmoji: {
+    fontSize: 48
+  },
+  sitterName: {
+    fontSize: 28,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 8,
-    color: '#333'
+    marginBottom: 12,
+    color: '#111827'
   },
   experience: {
     fontSize: 16,
-    color: '#555',
+    color: '#7c3aed',
     textAlign: 'center',
-    marginBottom: 5
+    marginBottom: 8,
+    fontWeight: '500'
   },
-  about: {
-    marginTop: 10,
-    fontSize: 14,
-    color: '#333',
+  sitterInfo: {
+    fontSize: 16,
+    color: '#374151',
     textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: 10
+    marginBottom: 8
+  },
+  contactInfo: {
+    fontSize: 16,
+    color: '#374151',
+    textAlign: 'center',
+    marginBottom: 8
+  },
+  contactSection: {
+    marginBottom: 16
+  },
+  infoSection: {
+    width: '100%',
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#fff',
+    borderRadius: 8
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2563eb',
+    marginBottom: 4
+  },
+  sectionContent: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 18
   },
   hint: {
     marginTop: 20,
     fontSize: 12,
-    color: '#888',
-    fontStyle: 'italic'
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    textAlign: 'center'
   },
-  noMoreCard: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0'
-  },
-  noMoreText: {
-    fontSize: 28,
+  emptyTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#666',
     textAlign: 'center',
-    marginBottom: 15
+    marginBottom: 8,
+    color: '#111827'
   },
-  noMoreSubtext: {
+  emptySubtitle: {
     fontSize: 16,
-    color: '#888',
+    color: '#6b7280',
     textAlign: 'center'
   },
   overlay: {
@@ -241,19 +336,17 @@ const styles = StyleSheet.create({
   interested: {
     fontSize: 36,
     fontWeight: 'bold',
-    backgroundColor: '#4CAF50',
-    color: '#fff',
+    backgroundColor: '#fef3c7',
+    color: '#d97706',
     padding: 12,
     borderRadius: 10
   },
   pass: {
     fontSize: 36,
     fontWeight: 'bold',
-    backgroundColor: '#f44336',
-    color: '#fff',
+    backgroundColor: '#fef2f2',
+    color: '#dc2626',
     padding: 12,
     borderRadius: 10
   }
 });
-
-

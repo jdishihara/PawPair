@@ -178,3 +178,44 @@ export const getUserByEmail = async (email: string): Promise<UserProfile | null>
     return null;
   }
 };
+
+// Update current user's profile
+export const updateUserProfile = async (updatedProfile: UserProfile): Promise<boolean> => {
+  try {
+    const users = await getStoredUsers();
+    const currentUser = await getCurrentUser();
+    
+    if (!currentUser) {
+      console.error('No current user found');
+      return false;
+    }
+    
+    // Find and update the user in the stored users list
+    const userIndex = users.findIndex(user => user.email === currentUser.email);
+    if (userIndex === -1) {
+      console.error('Current user not found in stored users');
+      return false;
+    }
+    
+    // Update the user's profile while keeping the original email and password
+    users[userIndex] = {
+      ...users[userIndex],
+      profile: {
+        ...updatedProfile,
+        email: currentUser.email, // Keep original email
+        password: currentUser.password // Keep original password
+      }
+    };
+    
+    // Save updated users list
+    await AsyncStorage.setItem(USERS_KEY, JSON.stringify(users));
+    
+    // Update current user session
+    await setCurrentUser(users[userIndex].profile);
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    return false;
+  }
+};

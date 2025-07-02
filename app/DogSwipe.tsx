@@ -1,52 +1,17 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
-  Image,
   StyleSheet,
   Text,
   TouchableWithoutFeedback,
   View
 } from 'react-native';
 import Swiper from 'react-native-deck-swiper';
+import { UserProfile } from './AuthFlow';
+import { getUsersByType } from '../utils/userStorage';
 
-type DogProfile = {
-  id: number;
-  name: string;
-  breed: string;
-  image: string;
-  age?: string;
-  about?: string;
-};
-
-const sampleProfiles: DogProfile[] = [
-  {
-    id: 1,
-    name: 'Charlie 🐶',
-    breed: 'Golden Retriever',
-    image: 'https://placedog.net/500/400?id=1',
-    age: '3 years old',
-    about: 'Loves hiking, belly rubs, and tennis balls.'
-  },
-  {
-    id: 2,
-    name: 'Luna 🐕',
-    breed: 'Husky Mix',
-    image: 'https://placedog.net/500/400?id=2',
-    age: '2 years old',
-    about: 'Super energetic and friendly. Will talk to you.'
-  },
-  {
-    id: 3,
-    name: 'Max 🐾',
-    breed: 'Corgi',
-    image: 'https://placedog.net/500/400?id=3',
-    age: '1 year old',
-    about: 'Low to the ground, high on charm.'
-  }
-];
-
-const FlipCard = ({ profile }: { profile: DogProfile }) => {
+const FlipCard = ({ profile }: { profile: UserProfile }) => {
   const flipAnim = useRef(new Animated.Value(0)).current;
   const [isFlipped, setIsFlipped] = useState(false);
 
@@ -73,20 +38,28 @@ const FlipCard = ({ profile }: { profile: DogProfile }) => {
   return (
     <TouchableWithoutFeedback onPress={flip}>
       <View style={styles.card}>
-        {/* Front of card */}
+        {/* Front of card - Dog Info */}
         <Animated.View 
           style={[
             styles.cardFace, 
             { transform: [{ rotateY: frontRotateY }] }
           ]}
         >
-          <Image source={{ uri: profile.image }} style={styles.image} />
-          <Text style={styles.name}>{profile.name}</Text>
-          <Text style={styles.breed}>{profile.breed}</Text>
-          <Text style={styles.hint}>Tap card to see more</Text>
+          <View style={styles.dogImagePlaceholder}>
+            <Text style={styles.dogEmoji}>🐕</Text>
+          </View>
+          <Text style={styles.dogName}>{profile.dogName || 'Furry Friend'}</Text>
+          <Text style={styles.dogBreed}>{profile.dogBreed || 'Mixed Breed'}</Text>
+          {profile.dogAge && (
+            <Text style={styles.dogInfo}>{profile.dogAge}</Text>
+          )}
+          {profile.dogSize && (
+            <Text style={styles.dogInfo}>Size: {profile.dogSize.replace('_', ' ')}</Text>
+          )}
+          <Text style={styles.hint}>Tap to see owner details</Text>
         </Animated.View>
 
-        {/* Back of card */}
+        {/* Back of card - Owner Info */}
         <Animated.View 
           style={[
             styles.cardFace, 
@@ -94,10 +67,34 @@ const FlipCard = ({ profile }: { profile: DogProfile }) => {
             { transform: [{ rotateY: backRotateY }] }
           ]}
         >
-          <Text style={styles.name}>{profile.name}</Text>
-          <Text style={styles.breed}>{profile.age}</Text>
-          <Text style={styles.about}>{profile.about}</Text>
-          <Text style={styles.hint}>Tap card to flip back</Text>
+          <Text style={styles.ownerName}>{profile.firstName} {profile.lastName}</Text>
+          <Text style={styles.contactInfo}>📞 {profile.phone}</Text>
+          {profile.emergencyContact && (
+            <Text style={styles.contactInfo}>🚨 Emergency: {profile.emergencyContact}</Text>
+          )}
+          
+          {profile.dogTemperament && (
+            <View style={styles.infoSection}>
+              <Text style={styles.sectionTitle}>Temperament</Text>
+              <Text style={styles.sectionContent}>{profile.dogTemperament}</Text>
+            </View>
+          )}
+          
+          {profile.dogExerciseNeeds && (
+            <View style={styles.infoSection}>
+              <Text style={styles.sectionTitle}>Exercise Needs</Text>
+              <Text style={styles.sectionContent}>{profile.dogExerciseNeeds}</Text>
+            </View>
+          )}
+          
+          {profile.dogAllergies && (
+            <View style={styles.infoSection}>
+              <Text style={styles.sectionTitle}>Allergies</Text>
+              <Text style={styles.sectionContent}>{profile.dogAllergies}</Text>
+            </View>
+          )}
+          
+          <Text style={styles.hint}>Tap to flip back</Text>
         </Animated.View>
       </View>
     </TouchableWithoutFeedback>
@@ -105,7 +102,52 @@ const FlipCard = ({ profile }: { profile: DogProfile }) => {
 };
 
 export default function MatchSwipeScreen() {
+  const [dogOwners, setDogOwners] = useState<UserProfile[]>([]);
   const [swipeLabel, setSwipeLabel] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadDogOwners();
+  }, []);
+
+  const loadDogOwners = async () => {
+    try {
+      const owners = await getUsersByType('owner');
+      // Filter owners who have dog information
+      const ownersWithDogs = owners.filter(owner => owner.dogName && owner.dogBreed);
+      setDogOwners(ownersWithDogs);
+    } catch (error) {
+      console.error('Error loading dog owners:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSwipeRight = (index: number) => {
+    const owner = dogOwners[index];
+    if (owner) {
+      console.log('Interested in caring for:', owner.dogName, 'owned by', owner.firstName);
+      // TODO: Save this match/interest
+    }
+    setSwipeLabel(null);
+  };
+
+  const handleSwipeLeft = (index: number) => {
+    const owner = dogOwners[index];
+    if (owner) {
+      console.log('Passed on:', owner.dogName);
+      // TODO: Save this pass
+    }
+    setSwipeLabel(null);
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.loadingText}>Loading dogs to care for...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -116,27 +158,27 @@ export default function MatchSwipeScreen() {
           </Text>
         </View>
       )}
+      
+      <View style={styles.instructions}>
+        <Text style={styles.instructionsText}>Swipe right if you'd like to care for this dog!</Text>
+      </View>
+      
       <Swiper
-        cards={sampleProfiles}
-        renderCard={(card: DogProfile | undefined) => {
-          if (!card) {
+        cards={dogOwners}
+        renderCard={(owner: UserProfile | undefined) => {
+          if (!owner) {
             return (
-              <View style={styles.card}>
-                <Text style={styles.name}>No more pups 🐕</Text>
+              <View style={[styles.card, styles.centered]}>
+                <Text style={styles.emptyTitle}>No more dogs! 🐕</Text>
+                <Text style={styles.emptySubtitle}>Check back later for new opportunities</Text>
               </View>
             );
           }
 
-          return <FlipCard profile={card} />;
+          return <FlipCard profile={owner} />;
         }}
-        onSwipedRight={(index: number) => {
-          console.log('Swiped Right:', sampleProfiles[index]?.name);
-          setSwipeLabel(null);
-        }}
-        onSwipedLeft={(index: number) => {
-          console.log('Swiped Left:', sampleProfiles[index]?.name);
-          setSwipeLabel(null);
-        }}
+        onSwipedRight={handleSwipeRight}
+        onSwipedLeft={handleSwipeLeft}
         onSwiping={(x: number) => {
           if (x > 50) {
             setSwipeLabel('INTERESTED 🐾');
@@ -158,6 +200,25 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 80,
     backgroundColor: '#fff'
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  instructions: {
+    paddingHorizontal: 20,
+    marginBottom: 20
+  },
+  instructionsText: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#6b7280',
+    fontWeight: '500'
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#6b7280',
+    textAlign: 'center'
   },
   card: {
     borderRadius: 12,
@@ -182,37 +243,88 @@ const styles = StyleSheet.create({
     backfaceVisibility: 'hidden'
   },
   cardBack: {
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#f8f9fa',
   },
-  image: {
-    width: Dimensions.get('window').width * 0.8,
-    height: 300,
-    borderRadius: 12,
+  dogImagePlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#e5e7eb',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 20
   },
-  name: {
-    fontSize: 24,
+  dogEmoji: {
+    fontSize: 48
+  },
+  dogName: {
+    fontSize: 28,
     fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+    color: '#111827'
+  },
+  dogBreed: {
+    fontSize: 18,
+    color: '#6b7280',
     textAlign: 'center',
     marginBottom: 8
   },
-  breed: {
+  dogInfo: {
     fontSize: 16,
-    color: '#555',
-    textAlign: 'center'
-  },
-  about: {
-    marginTop: 10,
-    fontSize: 14,
-    color: '#333',
+    color: '#374151',
     textAlign: 'center',
-    lineHeight: 20
+    marginBottom: 4
+  },
+  ownerName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 16,
+    color: '#111827'
+  },
+  contactInfo: {
+    fontSize: 16,
+    color: '#374151',
+    textAlign: 'center',
+    marginBottom: 8
+  },
+  infoSection: {
+    width: '100%',
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#fff',
+    borderRadius: 8
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2563eb',
+    marginBottom: 4
+  },
+  sectionContent: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 18
   },
   hint: {
     marginTop: 20,
     fontSize: 12,
-    color: '#888',
-    fontStyle: 'italic'
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    textAlign: 'center'
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+    color: '#111827'
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center'
   },
   overlay: {
     position: 'absolute',
@@ -224,16 +336,16 @@ const styles = StyleSheet.create({
   interested: {
     fontSize: 36,
     fontWeight: 'bold',
-    backgroundColor: '#ccffcc',
-    color: '#006600',
+    backgroundColor: '#dcfce7',
+    color: '#16a34a',
     padding: 12,
     borderRadius: 10
   },
   pass: {
     fontSize: 36,
     fontWeight: 'bold',
-    backgroundColor: '#ffcccc',
-    color: '#990000',
+    backgroundColor: '#fef2f2',
+    color: '#dc2626',
     padding: 12,
     borderRadius: 10
   }
