@@ -110,6 +110,29 @@ export default function UserProfileView({ userProfile, onBack, onMessage }: User
         </View>
       )}
 
+      {isSitter && (userProfile.preferredStartTime || userProfile.shortNotice || userProfile.overnightCare || userProfile.weekendCare || userProfile.holidayCare) && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Availability & Services</Text>
+          {userProfile.preferredStartTime && userProfile.preferredEndTime && (
+            <Text style={styles.info}>
+              Preferred Hours: {userProfile.preferredStartTime} - {userProfile.preferredEndTime}
+            </Text>
+          )}
+          {userProfile.shortNotice && (
+            <Text style={styles.info}>✅ Available for short notice requests</Text>
+          )}
+          {userProfile.overnightCare && (
+            <Text style={styles.info}>✅ Provides overnight care</Text>
+          )}
+          {userProfile.weekendCare && (
+            <Text style={styles.info}>✅ Available on weekends</Text>
+          )}
+          {userProfile.holidayCare && (
+            <Text style={styles.info}>✅ Available on holidays</Text>
+          )}
+        </View>
+      )}
+
       {onMessage && (
         <TouchableOpacity style={styles.messageButton} onPress={onMessage}>
           <Text style={styles.messageButtonText}>Send Message</Text>

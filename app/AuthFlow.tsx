@@ -51,6 +51,14 @@ export type UserProfile = {
   dogTrainingLevel?: string;
   dogVaccinations?: string;
   dogDiet?: string;
+  // Availability preferences
+  preferredStartTime?: string; // Default start time for availability
+  preferredEndTime?: string; // Default end time for availability
+  availableDays?: string[]; // Days of week available ['monday', 'tuesday', etc.]
+  shortNotice?: boolean; // Available for short notice requests
+  overnightCare?: boolean; // Available for overnight care
+  weekendCare?: boolean; // Available for weekend care
+  holidayCare?: boolean; // Available for holiday care
 };
 
 const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
@@ -272,6 +280,68 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
       {renderInput('Phone Number', 'phone', 'phone-pad')}
       {renderInput('Experience with dogs', 'experience')}
       {renderInput('Max Distance (miles)', 'maxDistance', 'numeric')}
+      
+      <Text style={styles.sectionHeader}>Availability Preferences</Text>
+      <View style={styles.timeContainer}>
+        <View style={styles.timeInput}>
+          <Text style={styles.label}>Preferred Start Time</Text>
+          <TextInput
+            style={styles.input}
+            value={profile.preferredStartTime || ''}
+            onChangeText={(value) => setProfile(prev => ({ ...prev, preferredStartTime: value }))}
+            placeholder="09:00"
+          />
+        </View>
+        <View style={styles.timeInput}>
+          <Text style={styles.label}>Preferred End Time</Text>
+          <TextInput
+            style={styles.input}
+            value={profile.preferredEndTime || ''}
+            onChangeText={(value) => setProfile(prev => ({ ...prev, preferredEndTime: value }))}
+            placeholder="17:00"
+          />
+        </View>
+      </View>
+
+      <Text style={styles.label}>Care Options</Text>
+      <View style={styles.checkboxContainer}>
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => setProfile(prev => ({ ...prev, shortNotice: !prev.shortNotice }))}
+        >
+          <Text style={styles.checkboxText}>
+            {profile.shortNotice ? '✅' : '☐'} Available for short notice requests
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => setProfile(prev => ({ ...prev, overnightCare: !prev.overnightCare }))}
+        >
+          <Text style={styles.checkboxText}>
+            {profile.overnightCare ? '✅' : '☐'} Available for overnight care
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => setProfile(prev => ({ ...prev, weekendCare: !prev.weekendCare }))}
+        >
+          <Text style={styles.checkboxText}>
+            {profile.weekendCare ? '✅' : '☐'} Available on weekends
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => setProfile(prev => ({ ...prev, holidayCare: !prev.holidayCare }))}
+        >
+          <Text style={styles.checkboxText}>
+            {profile.holidayCare ? '✅' : '☐'} Available on holidays
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity
         style={styles.button}
         onPress={handleProfileSubmit}
@@ -415,6 +485,25 @@ const styles = StyleSheet.create({
   pickerButtonTextSelected: {
     color: '#fff',
     fontWeight: '500'
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16
+  },
+  timeInput: {
+    flex: 1,
+    marginHorizontal: 4
+  },
+  checkboxContainer: {
+    marginBottom: 20
+  },
+  checkbox: {
+    marginBottom: 12
+  },
+  checkboxText: {
+    fontSize: 16,
+    color: '#374151'
   }
 });
 

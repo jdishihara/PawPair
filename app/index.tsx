@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import AuthFlow, { UserType } from './AuthFlow';
+import CalendarScreen from './CalendarScreen';
 import DogSitterSwipe from './DogSitterSwipe';
 import MatchSwipeScreen from './DogSwipe';
 import MatchesScreen from './MatchesScreen';
@@ -67,6 +68,9 @@ export default function IndexRoute() {
             case 'Matches':
               iconName = 'favorite';
               break;
+            case 'Calendar':
+              iconName = 'calendar-today';
+              break;
             case 'Messages':
               iconName = 'chat';
               break;
@@ -125,6 +129,12 @@ export default function IndexRoute() {
         name="Matches"
         component={MatchesScreen}
         options={{ title: 'Your Matches' }}
+      />
+
+      <Tab.Screen
+        name="Calendar"
+        component={CalendarScreen}
+        options={{ title: 'Calendar' }}
       />
 
       <Tab.Screen

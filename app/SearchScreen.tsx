@@ -118,6 +118,24 @@ export default function SearchScreen() {
         {item.userType === 'sitter' && item.experience && (
           <Text style={styles.experience}>Experience: {item.experience}</Text>
         )}
+        {item.userType === 'sitter' && (
+          <View style={styles.availabilityInfo}>
+            {item.shortNotice && (
+              <Text style={styles.availabilityTag}>⚡ Short Notice</Text>
+            )}
+            {item.overnightCare && (
+              <Text style={styles.availabilityTag}>🌙 Overnight</Text>
+            )}
+            {item.weekendCare && (
+              <Text style={styles.availabilityTag}>📅 Weekends</Text>
+            )}
+            {item.preferredStartTime && item.preferredEndTime && (
+              <Text style={styles.timeInfo}>
+                Usually available: {item.preferredStartTime} - {item.preferredEndTime}
+              </Text>
+            )}
+          </View>
+        )}
       </View>
       <Text style={styles.viewProfile}>View →</Text>
     </TouchableOpacity>
@@ -282,6 +300,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#7c3aed',
     fontWeight: '500'
+  },
+  availabilityInfo: {
+    marginTop: 8
+  },
+  availabilityTag: {
+    fontSize: 12,
+    color: '#059669',
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginRight: 4,
+    marginBottom: 2,
+    alignSelf: 'flex-start'
+  },
+  timeInfo: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 4
   },
   viewProfile: {
     fontSize: 16,
