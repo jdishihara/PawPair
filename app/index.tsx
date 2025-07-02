@@ -8,12 +8,17 @@ import DogSitterSwipe from './DogSitterSwipe';
 import MatchSwipeScreen from './DogSwipe';
 import MessagesScreen from './MessagesScreen';
 import OwnerProfileScreen from './OwnerProfileScreen';
+import SearchScreen from './SearchScreen';
 import SitterProfileScreen from './SitterProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
 export default function IndexRoute() {
   const [userType, setUserType] = useState<UserType | null>(null);
+
+  const handleLogout = () => {
+    setUserType(null);
+  };
 
   // Before login: render AuthFlow
   if (!userType) {
@@ -30,6 +35,9 @@ export default function IndexRoute() {
           switch (route.name) {
             case 'Home':
               iconName = 'pets';
+              break;
+            case 'Search':
+              iconName = 'search';
               break;
             case 'Messages':
               iconName = 'chat';
@@ -51,6 +59,12 @@ export default function IndexRoute() {
       />
 
       <Tab.Screen
+        name="Search"
+        component={SearchScreen}
+        options={{ title: 'Search Users' }}
+      />
+
+      <Tab.Screen
         name="Messages"
         component={MessagesScreen}
         options={{ title: 'Messages' }}
@@ -62,8 +76,8 @@ export default function IndexRoute() {
       >
         {() =>
           userType === 'owner'
-            ? <OwnerProfileScreen />
-            : <SitterProfileScreen />
+            ? <OwnerProfileScreen onLogout={handleLogout} />
+            : <SitterProfileScreen onLogout={handleLogout} />
         }
       </Tab.Screen>
     </Tab.Navigator>

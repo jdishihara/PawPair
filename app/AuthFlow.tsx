@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { isEmailRegistered, saveUserProfile, setCurrentUser, validateLogin } from '../utils/userStorage';
 
 // Props now include userType callback
 type AuthFlowProps = {
@@ -37,6 +38,19 @@ export type UserProfile = {
   hasOtherPets?: boolean;
   maxDistance?: number;
   preferredSizes?: string[];
+  // Dog information for owners
+  dogName?: string;
+  dogBreed?: string;
+  dogAge?: string;
+  dogWeight?: string;
+  dogSize?: 'small' | 'medium' | 'large' | 'extra_large';
+  dogAllergies?: string;
+  dogExerciseNeeds?: string;
+  dogTemperament?: string;
+  dogHealthIssues?: string;
+  dogTrainingLevel?: string;
+  dogVaccinations?: string;
+  dogDiet?: string;
 };
 
 const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
@@ -49,20 +63,40 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
     setProfile(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleAuth = () => {
+  const handleAuth = async () => {
     if (!profile.email || !profile.password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
+    
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    
+    try {
       if (isLogin) {
-        setCurrentStep('complete');
+        // Validate login credentials
+        const userProfile = await validateLogin(profile.email, profile.password);
+        if (userProfile) {
+          setProfile(userProfile);
+          await setCurrentUser(userProfile);
+          setCurrentStep('complete');
+        } else {
+          Alert.alert('Login Failed', 'Invalid email or password');
+        }
       } else {
-        setCurrentStep('userType');
+        // Check if email is already registered for signup
+        const emailExists = await isEmailRegistered(profile.email);
+        if (emailExists) {
+          Alert.alert('Signup Failed', 'This email is already registered. Please use a different email or try logging in.');
+        } else {
+          setCurrentStep('userType');
+        }
       }
-    }, 1000);
+    } catch (error) {
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+      console.error('Auth error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleUserTypeSelection = (type: UserType) => {
@@ -70,12 +104,37 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
     setCurrentStep(type === 'owner' ? 'ownerProfile' : 'sitterProfile');
   };
 
-  const handleProfileSubmit = () => {
+  const handleProfileSubmit = async () => {
+    // Validate required fields
+    if (!profile.firstName || !profile.lastName || !profile.phone) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+    
+    // Additional validation for dog owners
+    if (profile.userType === 'owner') {
+      if (!profile.dogName || !profile.dogBreed || !profile.dogAge || !profile.dogWeight) {
+        Alert.alert('Error', 'Please fill in your dog\'s basic information (name, breed, age, weight)');
+        return;
+      }
+    }
+    
     setLoading(true);
-    setTimeout(() => {
+    
+    try {
+      const success = await saveUserProfile(profile as UserProfile);
+      if (success) {
+        await setCurrentUser(profile as UserProfile);
+        setCurrentStep('complete');
+      } else {
+        Alert.alert('Error', 'Failed to save profile. Please try again.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+      console.error('Profile save error:', error);
+    } finally {
       setLoading(false);
-      setCurrentStep('complete');
-    }, 1000);
+    }
   };
 
   const renderInput = (
@@ -149,10 +208,50 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
   const renderOwnerProfileScreen = () => (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Owner Profile</Text>
+      
+      <Text style={styles.sectionHeader}>Personal Information</Text>
       {renderInput('First Name', 'firstName')}
       {renderInput('Last Name', 'lastName')}
       {renderInput('Phone Number', 'phone', 'phone-pad')}
       {renderInput('Emergency Contact', 'emergencyContact')}
+      
+      <Text style={styles.sectionHeader}>Dog Information</Text>
+      {renderInput('Dog Name', 'dogName')}
+      {renderInput('Dog Breed', 'dogBreed')}
+      {renderInput('Dog Age (e.g., 3 years)', 'dogAge')}
+      {renderInput('Dog Weight (e.g., 45 lbs)', 'dogWeight')}
+      
+      <View style={styles.pickerContainer}>
+        <Text style={styles.pickerLabel}>Dog Size</Text>
+        <View style={styles.pickerButtons}>
+          {['small', 'medium', 'large', 'extra_large'].map((size) => (
+            <TouchableOpacity
+              key={size}
+              style={[
+                styles.pickerButton,
+                profile.dogSize === size && styles.pickerButtonSelected
+              ]}
+              onPress={() => updateProfile('dogSize', size)}
+            >
+              <Text style={[
+                styles.pickerButtonText,
+                profile.dogSize === size && styles.pickerButtonTextSelected
+              ]}>
+                {size.replace('_', ' ')}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+      
+      {renderInput('Allergies/Sensitivities', 'dogAllergies')}
+      {renderInput('Exercise Needs', 'dogExerciseNeeds')}
+      {renderInput('Temperament', 'dogTemperament')}
+      {renderInput('Health Issues (if any)', 'dogHealthIssues')}
+      {renderInput('Training Level', 'dogTrainingLevel')}
+      {renderInput('Vaccination Status', 'dogVaccinations')}
+      {renderInput('Diet/Food Preferences', 'dogDiet')}
+      
       <TouchableOpacity
         style={styles.button}
         onPress={handleProfileSubmit}
@@ -270,6 +369,52 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     backgroundColor: '#f9f9f9'
+  },
+  sectionHeader: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginTop: 20,
+    marginBottom: 12,
+    color: '#2563eb',
+    textAlign: 'center'
+  },
+  pickerContainer: {
+    width: '100%',
+    marginBottom: 15
+  },
+  pickerLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 8,
+    color: '#374151'
+  },
+  pickerButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between'
+  },
+  pickerButton: {
+    backgroundColor: '#f3f4f6',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    minWidth: '45%',
+    marginBottom: 8,
+    alignItems: 'center'
+  },
+  pickerButtonSelected: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb'
+  },
+  pickerButtonText: {
+    fontSize: 14,
+    color: '#374151',
+    textTransform: 'capitalize'
+  },
+  pickerButtonTextSelected: {
+    color: '#fff',
+    fontWeight: '500'
   }
 });
 
