@@ -13,7 +13,11 @@ import { UserProfile } from './AuthFlow';
 import UserProfileView from './UserProfileView';
 import { getCurrentUser, getUsersByType, searchUsers } from '../utils/userStorage';
 
-export default function SearchScreen() {
+interface SearchScreenProps {
+  onClose?: () => void;
+}
+
+export default function SearchScreen({ onClose }: SearchScreenProps) {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
@@ -156,7 +160,14 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Search Users</Text>
+      <View style={styles.headerContainer}>
+        <Text style={styles.header}>Search Users</Text>
+        {onClose && (
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Text style={styles.closeButtonText}>Done</Text>
+          </TouchableOpacity>
+        )}
+      </View>
       
       <TextInput
         style={styles.searchInput}
@@ -224,12 +235,27 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60
   },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20
+  },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
     color: '#111827'
+  },
+  closeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#2563eb',
+    borderRadius: 8
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16
   },
   searchInput: {
     borderWidth: 1,

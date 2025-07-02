@@ -13,12 +13,14 @@ import MessagesScreen from './MessagesScreen';
 import OwnerProfileScreen from './OwnerProfileScreen';
 import SearchScreen from './SearchScreen';
 import SitterProfileScreen from './SitterProfileScreen';
+import { SearchProvider, useSearch } from '../contexts/SearchContext';
 
 const Tab = createBottomTabNavigator();
 
-export default function IndexRoute() {
+function MainApp() {
   const [userType, setUserType] = useState<UserType | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const { showSearch, closeSearch } = useSearch();
 
   const handleLogout = () => {
     setUserType(null);
@@ -51,6 +53,13 @@ export default function IndexRoute() {
     return <AuthFlow onAuthComplete={type => setUserType(type)} />;
   }
 
+  // Show search modal if open
+  if (showSearch) {
+    return (
+      <SearchScreen onClose={closeSearch} />
+    );
+  }
+
   // After login: Bottom Tab Navigator
   return (
     <Tab.Navigator
@@ -61,9 +70,6 @@ export default function IndexRoute() {
           switch (route.name) {
             case 'Home':
               iconName = 'pets';
-              break;
-            case 'Search':
-              iconName = 'search';
               break;
             case 'Matches':
               iconName = 'favorite';
@@ -120,12 +126,6 @@ export default function IndexRoute() {
       />
 
       <Tab.Screen
-        name="Search"
-        component={SearchScreen}
-        options={{ title: 'Search Users' }}
-      />
-
-      <Tab.Screen
         name="Matches"
         component={MatchesScreen}
         options={{ title: 'Your Matches' }}
@@ -154,5 +154,13 @@ export default function IndexRoute() {
         }
       </Tab.Screen>
     </Tab.Navigator>
+  );
+}
+
+export default function IndexRoute() {
+  return (
+    <SearchProvider>
+      <MainApp />
+    </SearchProvider>
   );
 }

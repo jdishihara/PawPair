@@ -1,9 +1,11 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
   StyleSheet,
   Text,
+  TouchableOpacity,
   TouchableWithoutFeedback,
   View
 } from 'react-native';
@@ -11,6 +13,7 @@ import Swiper from 'react-native-deck-swiper';
 import { UserProfile } from './AuthFlow';
 import { getUsersByType } from '../utils/userStorage';
 import { getSwipedUsers, saveSwipeDecision } from '../utils/matchStorage';
+import { useSearch } from '../contexts/SearchContext';
 
 const FlipCard = ({ profile }: { profile: UserProfile }) => {
   const flipAnim = useRef(new Animated.Value(0)).current;
@@ -112,6 +115,7 @@ export default function DogSitterSwipe() {
   const [dogSitters, setDogSitters] = useState<UserProfile[]>([]);
   const [swipeLabel, setSwipeLabel] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const { openSearch } = useSearch();
 
   useEffect(() => {
     loadDogSitters();
@@ -175,6 +179,14 @@ export default function DogSitterSwipe() {
 
   return (
     <View style={styles.container}>
+      {/* Header with search button */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Find Sitters</Text>
+        <TouchableOpacity onPress={openSearch} style={styles.searchButton}>
+          <MaterialIcons name="search" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
       {swipeLabel && (
         <View style={styles.overlay}>
           <Text style={swipeLabel === 'PASS ❌' ? styles.pass : styles.interested}>
@@ -222,8 +234,36 @@ export default function DogSitterSwipe() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 80,
     backgroundColor: '#fff'
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb'
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827'
+  },
+  searchButton: {
+    backgroundColor: '#2563eb',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2
   },
   centered: {
     justifyContent: 'center',

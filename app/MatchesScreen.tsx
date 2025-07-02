@@ -1,4 +1,5 @@
 // app/MatchesScreen.tsx
+import { MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -10,11 +11,13 @@ import {
 } from 'react-native';
 import { getUserMatches, MatchWithProfiles } from '../utils/matchStorage';
 import UserProfileView from './UserProfileView';
+import { useSearch } from '../contexts/SearchContext';
 
 export default function MatchesScreen() {
   const [matches, setMatches] = useState<MatchWithProfiles[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMatch, setSelectedMatch] = useState<MatchWithProfiles | null>(null);
+  const { openSearch } = useSearch();
 
   useEffect(() => {
     loadMatches();
@@ -125,7 +128,12 @@ export default function MatchesScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Your Matches</Text>
+      <View style={styles.headerContainer}>
+        <Text style={styles.header}>Your Matches</Text>
+        <TouchableOpacity onPress={openSearch} style={styles.searchButton}>
+          <MaterialIcons name="search" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
       
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -173,12 +181,29 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60
   },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20
+  },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
     color: '#111827'
+  },
+  searchButton: {
+    backgroundColor: '#2563eb',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2
   },
   loadingContainer: {
     flex: 1,
