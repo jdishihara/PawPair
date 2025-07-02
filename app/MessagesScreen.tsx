@@ -1,31 +1,25 @@
-// app/MessagesScreen.tsx
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { ChatScreen } from './screens/ChatScreen';
+import { ConversationListScreen } from './screens/ConversationListScreen';
 
 export default function MessagesScreen() {
-  // later you’ll wire this up to real chat data
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const currentUserId = '2'; // This should come from your auth context
+
+  if (selectedConversationId) {
+    return (
+      <ChatScreen
+        conversationId={selectedConversationId}
+        currentUserId={currentUserId}
+        onBack={() => setSelectedConversationId(null)}
+      />
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Messages</Text>
-      <Text style={styles.subtext}>No conversations yet.</Text>
-    </View>
+    <ConversationListScreen
+      onSelectConversation={setSelectedConversationId}
+      currentUserId={currentUserId}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    padding: 20
-  },
-  header: {
-    fontSize: 24, 
-    fontWeight: 'bold', 
-    marginBottom: 16
-  },
-  subtext: {
-    fontSize: 16, 
-    color: '#666'
-  }
-});
