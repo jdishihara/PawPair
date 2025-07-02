@@ -1,11 +1,13 @@
 // app/index.tsx
 import { MaterialIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Text, View } from 'react-native';
 
 import AuthFlow, { UserType } from './AuthFlow';
 import DogSitterSwipe from './DogSitterSwipe';
 import MatchSwipeScreen from './DogSwipe';
+import MatchesScreen from './MatchesScreen';
 import MessagesScreen from './MessagesScreen';
 import OwnerProfileScreen from './OwnerProfileScreen';
 import SearchScreen from './SearchScreen';
@@ -15,10 +17,33 @@ const Tab = createBottomTabNavigator();
 
 export default function IndexRoute() {
   const [userType, setUserType] = useState<UserType | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const handleLogout = () => {
     setUserType(null);
   };
+
+  // Load unread count when user is logged in
+  useEffect(() => {
+    if (!userType) return;
+
+    const loadUnreadCount = async () => {
+      try {
+        const { getTotalUnreadCount } = await import('../utils/messageStorage');
+        const count = await getTotalUnreadCount();
+        setUnreadCount(count);
+      } catch (error) {
+        console.error('Error loading unread count:', error);
+      }
+    };
+
+    loadUnreadCount();
+
+    // Set up polling for unread count
+    const interval = setInterval(loadUnreadCount, 10000); // Check every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [userType]);
 
   // Before login: render AuthFlow
   if (!userType) {
@@ -39,6 +64,9 @@ export default function IndexRoute() {
             case 'Search':
               iconName = 'search';
               break;
+            case 'Matches':
+              iconName = 'favorite';
+              break;
             case 'Messages':
               iconName = 'chat';
               break;
@@ -48,6 +76,35 @@ export default function IndexRoute() {
             default:
               iconName = 'circle';
           }
+          
+          // Show badge for Messages tab if there are unread messages
+          if (route.name === 'Messages' && unreadCount > 0) {
+            return (
+              <View style={{ position: 'relative' }}>
+                <MaterialIcons name={iconName} size={size} color={color} />
+                <View style={{
+                  position: 'absolute',
+                  right: -6,
+                  top: -3,
+                  backgroundColor: '#dc2626',
+                  borderRadius: 10,
+                  width: 16,
+                  height: 16,
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}>
+                  <Text style={{
+                    color: 'white',
+                    fontSize: 10,
+                    fontWeight: 'bold'
+                  }}>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </Text>
+                </View>
+              </View>
+            );
+          }
+          
           return <MaterialIcons name={iconName} size={size} color={color} />;
         },
       })}
@@ -62,6 +119,12 @@ export default function IndexRoute() {
         name="Search"
         component={SearchScreen}
         options={{ title: 'Search Users' }}
+      />
+
+      <Tab.Screen
+        name="Matches"
+        component={MatchesScreen}
+        options={{ title: 'Your Matches' }}
       />
 
       <Tab.Screen

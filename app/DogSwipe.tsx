@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
-  Dimensions,
   StyleSheet,
   Text,
   TouchableWithoutFeedback,
@@ -10,6 +10,7 @@ import {
 import Swiper from 'react-native-deck-swiper';
 import { UserProfile } from './AuthFlow';
 import { getUsersByType } from '../utils/userStorage';
+import { getSwipedUsers, saveSwipeDecision } from '../utils/matchStorage';
 
 const FlipCard = ({ profile }: { profile: UserProfile }) => {
   const flipAnim = useRef(new Animated.Value(0)).current;
@@ -115,7 +116,14 @@ export default function MatchSwipeScreen() {
       const owners = await getUsersByType('owner');
       // Filter owners who have dog information
       const ownersWithDogs = owners.filter(owner => owner.dogName && owner.dogBreed);
-      setDogOwners(ownersWithDogs);
+      
+      // Filter out users already swiped on
+      const swipedUserEmails = await getSwipedUsers();
+      const unswipedOwners = ownersWithDogs.filter(owner => 
+        !swipedUserEmails.includes(owner.email)
+      );
+      
+      setDogOwners(unswipedOwners);
     } catch (error) {
       console.error('Error loading dog owners:', error);
     } finally {
@@ -123,20 +131,32 @@ export default function MatchSwipeScreen() {
     }
   };
 
-  const handleSwipeRight = (index: number) => {
+  const handleSwipeRight = async (index: number) => {
     const owner = dogOwners[index];
     if (owner) {
       console.log('Interested in caring for:', owner.dogName, 'owned by', owner.firstName);
-      // TODO: Save this match/interest
+      
+      const success = await saveSwipeDecision(owner.email, 'interested');
+      if (success) {
+        console.log('✅ Swipe decision saved');
+      } else {
+        Alert.alert('Error', 'Failed to save your interest. Please try again.');
+      }
     }
     setSwipeLabel(null);
   };
 
-  const handleSwipeLeft = (index: number) => {
+  const handleSwipeLeft = async (index: number) => {
     const owner = dogOwners[index];
     if (owner) {
       console.log('Passed on:', owner.dogName);
-      // TODO: Save this pass
+      
+      const success = await saveSwipeDecision(owner.email, 'pass');
+      if (success) {
+        console.log('✅ Pass decision saved');
+      } else {
+        Alert.alert('Error', 'Failed to save your decision. Please try again.');
+      }
     }
     setSwipeLabel(null);
   };
@@ -160,7 +180,7 @@ export default function MatchSwipeScreen() {
       )}
       
       <View style={styles.instructions}>
-        <Text style={styles.instructionsText}>Swipe right if you'd like to care for this dog!</Text>
+        <Text style={styles.instructionsText}>Swipe right if you&apos;d like to care for this dog!</Text>
       </View>
       
       <Swiper

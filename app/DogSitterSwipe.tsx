@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   StyleSheet,
   Text,
@@ -9,6 +10,7 @@ import {
 import Swiper from 'react-native-deck-swiper';
 import { UserProfile } from './AuthFlow';
 import { getUsersByType } from '../utils/userStorage';
+import { getSwipedUsers, saveSwipeDecision } from '../utils/matchStorage';
 
 const FlipCard = ({ profile }: { profile: UserProfile }) => {
   const flipAnim = useRef(new Animated.Value(0)).current;
@@ -118,7 +120,14 @@ export default function DogSitterSwipe() {
   const loadDogSitters = async () => {
     try {
       const sitters = await getUsersByType('sitter');
-      setDogSitters(sitters);
+      
+      // Filter out users already swiped on
+      const swipedUserEmails = await getSwipedUsers();
+      const unswipedSitters = sitters.filter(sitter => 
+        !swipedUserEmails.includes(sitter.email)
+      );
+      
+      setDogSitters(unswipedSitters);
     } catch (error) {
       console.error('Error loading dog sitters:', error);
     } finally {
@@ -126,20 +135,32 @@ export default function DogSitterSwipe() {
     }
   };
 
-  const handleSwipeRight = (index: number) => {
+  const handleSwipeRight = async (index: number) => {
     const sitter = dogSitters[index];
     if (sitter) {
       console.log('Interested in sitter:', sitter.firstName, sitter.lastName);
-      // TODO: Save this match/interest
+      
+      const success = await saveSwipeDecision(sitter.email, 'interested');
+      if (success) {
+        console.log('✅ Swipe decision saved');
+      } else {
+        Alert.alert('Error', 'Failed to save your interest. Please try again.');
+      }
     }
     setSwipeLabel(null);
   };
 
-  const handleSwipeLeft = (index: number) => {
+  const handleSwipeLeft = async (index: number) => {
     const sitter = dogSitters[index];
     if (sitter) {
       console.log('Passed on sitter:', sitter.firstName, sitter.lastName);
-      // TODO: Save this pass
+      
+      const success = await saveSwipeDecision(sitter.email, 'pass');
+      if (success) {
+        console.log('✅ Pass decision saved');
+      } else {
+        Alert.alert('Error', 'Failed to save your decision. Please try again.');
+      }
     }
     setSwipeLabel(null);
   };
@@ -163,7 +184,7 @@ export default function DogSitterSwipe() {
       )}
       
       <View style={styles.instructions}>
-        <Text style={styles.instructionsText}>Swipe right if you'd like this sitter to care for your dog!</Text>
+        <Text style={styles.instructionsText}>Swipe right if you&apos;d like this sitter to care for your dog!</Text>
       </View>
       
       <Swiper

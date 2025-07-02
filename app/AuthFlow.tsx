@@ -189,7 +189,7 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
         <Text style={styles.emoji}>🐕</Text>
         <Text style={styles.title}>Find care for my dog</Text>
         <Text style={styles.subtext}>
-          I'm a dog owner looking for trusted sitters
+          I&apos;m a dog owner looking for trusted sitters
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
