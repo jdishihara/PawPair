@@ -110,9 +110,47 @@ export default function UserProfileView({ userProfile, onBack, onMessage }: User
         </View>
       )}
 
+      {/* Services Section for Owners */}
+      {isOwner && (userProfile.needsSitting || userProfile.needsWalking) && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Services Needed</Text>
+          {userProfile.needsSitting && (
+            <Text style={styles.info}>🏠 Needs dog sitting services</Text>
+          )}
+          {userProfile.needsWalking && (
+            <Text style={styles.info}>🚶 Needs dog walking services</Text>
+          )}
+          {userProfile.needsWalking && userProfile.walkingDuration && (
+            <Text style={styles.info}>Walking Duration: {userProfile.walkingDuration}</Text>
+          )}
+          {userProfile.needsWalking && userProfile.walkingFrequency && (
+            <Text style={styles.info}>Walking Frequency: {userProfile.walkingFrequency}</Text>
+          )}
+        </View>
+      )}
+
+      {/* Services Section for Sitters */}
+      {isSitter && (userProfile.providesSitting || userProfile.providesWalking) && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Services Offered</Text>
+          {userProfile.providesSitting && (
+            <Text style={styles.info}>🏠 Provides dog sitting services</Text>
+          )}
+          {userProfile.providesWalking && (
+            <Text style={styles.info}>🚶 Provides dog walking services</Text>
+          )}
+          {userProfile.providesWalking && userProfile.walkingDuration && (
+            <Text style={styles.info}>Walking Duration: {userProfile.walkingDuration}</Text>
+          )}
+          {userProfile.providesWalking && userProfile.walkingFrequency && (
+            <Text style={styles.info}>Walking Frequency: {userProfile.walkingFrequency}</Text>
+          )}
+        </View>
+      )}
+
       {isSitter && (userProfile.preferredStartTime || userProfile.shortNotice || userProfile.overnightCare || userProfile.weekendCare || userProfile.holidayCare) && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Availability & Services</Text>
+          <Text style={styles.sectionTitle}>Availability & Care Options</Text>
           {userProfile.preferredStartTime && userProfile.preferredEndTime && (
             <Text style={styles.info}>
               Preferred Hours: {userProfile.preferredStartTime} - {userProfile.preferredEndTime}

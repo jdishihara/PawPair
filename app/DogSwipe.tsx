@@ -60,6 +60,17 @@ const FlipCard = ({ profile }: { profile: UserProfile }) => {
           {profile.dogSize && (
             <Text style={styles.dogInfo}>Size: {profile.dogSize.replace('_', ' ')}</Text>
           )}
+          
+          {/* Services needed */}
+          <View style={styles.servicesContainer}>
+            {profile.needsSitting && (
+              <Text style={styles.serviceTag}>🏠 Needs Sitting</Text>
+            )}
+            {profile.needsWalking && (
+              <Text style={styles.serviceTag}>🚶 Needs Walking</Text>
+            )}
+          </View>
+          
           <Text style={styles.hint}>Tap to see owner details</Text>
         </Animated.View>
 
@@ -95,6 +106,25 @@ const FlipCard = ({ profile }: { profile: UserProfile }) => {
             <View style={styles.infoSection}>
               <Text style={styles.sectionTitle}>Allergies</Text>
               <Text style={styles.sectionContent}>{profile.dogAllergies}</Text>
+            </View>
+          )}
+          
+          {/* Service requirements */}
+          {(profile.needsSitting || profile.needsWalking) && (
+            <View style={styles.infoSection}>
+              <Text style={styles.sectionTitle}>Services Needed</Text>
+              {profile.needsSitting && (
+                <Text style={styles.sectionContent}>🏠 Dog sitting required</Text>
+              )}
+              {profile.needsWalking && (
+                <Text style={styles.sectionContent}>🚶 Dog walking required</Text>
+              )}
+              {profile.needsWalking && profile.walkingDuration && (
+                <Text style={styles.sectionContent}>Walk duration: {profile.walkingDuration}</Text>
+              )}
+              {profile.needsWalking && profile.walkingFrequency && (
+                <Text style={styles.sectionContent}>Frequency: {profile.walkingFrequency}</Text>
+              )}
             </View>
           )}
           
@@ -366,6 +396,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#374151',
     lineHeight: 18
+  },
+  servicesContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginVertical: 12,
+    flexWrap: 'wrap'
+  },
+  serviceTag: {
+    fontSize: 12,
+    color: '#059669',
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginHorizontal: 4,
+    fontWeight: '600'
   },
   hint: {
     marginTop: 20,

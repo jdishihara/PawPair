@@ -119,8 +119,28 @@ export default function SearchScreen({ onClose }: SearchScreenProps) {
         {item.userType === 'owner' && item.dogName && (
           <Text style={styles.dogInfo}>Dog: {item.dogName} ({item.dogBreed})</Text>
         )}
+        {item.userType === 'owner' && (item.needsSitting || item.needsWalking) && (
+          <View style={styles.serviceInfo}>
+            {item.needsSitting && (
+              <Text style={styles.serviceTag}>🏠 Needs Sitting</Text>
+            )}
+            {item.needsWalking && (
+              <Text style={styles.serviceTag}>🚶 Needs Walking</Text>
+            )}
+          </View>
+        )}
         {item.userType === 'sitter' && item.experience && (
           <Text style={styles.experience}>Experience: {item.experience}</Text>
+        )}
+        {item.userType === 'sitter' && (item.providesSitting || item.providesWalking) && (
+          <View style={styles.serviceInfo}>
+            {item.providesSitting && (
+              <Text style={styles.serviceTag}>🏠 Provides Sitting</Text>
+            )}
+            {item.providesWalking && (
+              <Text style={styles.serviceTag}>🚶 Provides Walking</Text>
+            )}
+          </View>
         )}
         {item.userType === 'sitter' && (
           <View style={styles.availabilityInfo}>
@@ -326,6 +346,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#7c3aed',
     fontWeight: '500'
+  },
+  serviceInfo: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 6
+  },
+  serviceTag: {
+    fontSize: 12,
+    color: '#2563eb',
+    backgroundColor: '#dbeafe',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 6,
+    marginBottom: 4,
+    fontWeight: '600'
   },
   availabilityInfo: {
     marginTop: 8

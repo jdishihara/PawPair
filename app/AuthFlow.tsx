@@ -59,6 +59,13 @@ export type UserProfile = {
   overnightCare?: boolean; // Available for overnight care
   weekendCare?: boolean; // Available for weekend care
   holidayCare?: boolean; // Available for holiday care
+  // Service preferences
+  needsSitting?: boolean; // Owner: needs dog sitting service
+  needsWalking?: boolean; // Owner: needs dog walking service
+  providesSitting?: boolean; // Sitter: provides sitting service
+  providesWalking?: boolean; // Sitter: provides walking service
+  walkingDuration?: string; // Preferred walking duration (30min, 1hr, etc.)
+  walkingFrequency?: string; // How often walks are needed/provided
 };
 
 const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
@@ -260,6 +267,53 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
       {renderInput('Vaccination Status', 'dogVaccinations')}
       {renderInput('Diet/Food Preferences', 'dogDiet')}
       
+      <Text style={styles.sectionHeader}>Services Needed</Text>
+      <View style={styles.checkboxContainer}>
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => setProfile(prev => ({ ...prev, needsSitting: !prev.needsSitting }))}
+        >
+          <Text style={styles.checkboxText}>
+            {profile.needsSitting ? '✅' : '☐'} I need dog sitting services
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => setProfile(prev => ({ ...prev, needsWalking: !prev.needsWalking }))}
+        >
+          <Text style={styles.checkboxText}>
+            {profile.needsWalking ? '✅' : '☐'} I need dog walking services
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {profile.needsWalking && (
+        <View>
+          <Text style={styles.label}>Walking Preferences</Text>
+          <View style={styles.timeContainer}>
+            <View style={styles.timeInput}>
+              <Text style={styles.label}>Duration per walk</Text>
+              <TextInput
+                style={styles.input}
+                value={profile.walkingDuration || ''}
+                onChangeText={(value) => setProfile(prev => ({ ...prev, walkingDuration: value }))}
+                placeholder="30 minutes"
+              />
+            </View>
+            <View style={styles.timeInput}>
+              <Text style={styles.label}>Frequency</Text>
+              <TextInput
+                style={styles.input}
+                value={profile.walkingFrequency || ''}
+                onChangeText={(value) => setProfile(prev => ({ ...prev, walkingFrequency: value }))}
+                placeholder="Daily"
+              />
+            </View>
+          </View>
+        </View>
+      )}
+
       <TouchableOpacity
         style={styles.button}
         onPress={handleProfileSubmit}
@@ -302,6 +356,53 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
           />
         </View>
       </View>
+
+      <Text style={styles.label}>Services Offered</Text>
+      <View style={styles.checkboxContainer}>
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => setProfile(prev => ({ ...prev, providesSitting: !prev.providesSitting }))}
+        >
+          <Text style={styles.checkboxText}>
+            {profile.providesSitting ? '✅' : '☐'} I provide dog sitting services
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => setProfile(prev => ({ ...prev, providesWalking: !prev.providesWalking }))}
+        >
+          <Text style={styles.checkboxText}>
+            {profile.providesWalking ? '✅' : '☐'} I provide dog walking services
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {profile.providesWalking && (
+        <View>
+          <Text style={styles.label}>Walking Service Details</Text>
+          <View style={styles.timeContainer}>
+            <View style={styles.timeInput}>
+              <Text style={styles.label}>Walk duration offered</Text>
+              <TextInput
+                style={styles.input}
+                value={profile.walkingDuration || ''}
+                onChangeText={(value) => setProfile(prev => ({ ...prev, walkingDuration: value }))}
+                placeholder="30-60 minutes"
+              />
+            </View>
+            <View style={styles.timeInput}>
+              <Text style={styles.label}>Available frequency</Text>
+              <TextInput
+                style={styles.input}
+                value={profile.walkingFrequency || ''}
+                onChangeText={(value) => setProfile(prev => ({ ...prev, walkingFrequency: value }))}
+                placeholder="Daily/Weekly"
+              />
+            </View>
+          </View>
+        </View>
+      )}
 
       <Text style={styles.label}>Care Options</Text>
       <View style={styles.checkboxContainer}>

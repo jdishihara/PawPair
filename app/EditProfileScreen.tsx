@@ -201,6 +201,208 @@ export default function EditProfileScreen({ userProfile, onSave, onCancel }: Edi
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Service preferences for owners */}
+      {profile.userType === 'owner' && (
+        <>
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>Services Needed</Text>
+            
+            <View style={styles.pickerContainer}>
+              <Text style={styles.pickerLabel}>Dog Sitting</Text>
+              <View style={styles.pickerButtons}>
+                <TouchableOpacity
+                  style={[
+                    styles.pickerButton,
+                    profile.needsSitting === true && styles.pickerButtonSelected
+                  ]}
+                  onPress={() => updateProfile('needsSitting', true)}
+                >
+                  <Text style={[
+                    styles.pickerButtonText,
+                    profile.needsSitting === true && styles.pickerButtonTextSelected
+                  ]}>
+                    Yes
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.pickerButton,
+                    profile.needsSitting === false && styles.pickerButtonSelected
+                  ]}
+                  onPress={() => updateProfile('needsSitting', false)}
+                >
+                  <Text style={[
+                    styles.pickerButtonText,
+                    profile.needsSitting === false && styles.pickerButtonTextSelected
+                  ]}>
+                    No
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.pickerContainer}>
+              <Text style={styles.pickerLabel}>Dog Walking</Text>
+              <View style={styles.pickerButtons}>
+                <TouchableOpacity
+                  style={[
+                    styles.pickerButton,
+                    profile.needsWalking === true && styles.pickerButtonSelected
+                  ]}
+                  onPress={() => updateProfile('needsWalking', true)}
+                >
+                  <Text style={[
+                    styles.pickerButtonText,
+                    profile.needsWalking === true && styles.pickerButtonTextSelected
+                  ]}>
+                    Yes
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.pickerButton,
+                    profile.needsWalking === false && styles.pickerButtonSelected
+                  ]}
+                  onPress={() => updateProfile('needsWalking', false)}
+                >
+                  <Text style={[
+                    styles.pickerButtonText,
+                    profile.needsWalking === false && styles.pickerButtonTextSelected
+                  ]}>
+                    No
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {profile.needsWalking && (
+              <>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Walking Duration</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={profile.walkingDuration || ''}
+                    onChangeText={(value) => updateProfile('walkingDuration', value)}
+                    placeholder="30 minutes, 1 hour, etc."
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Walking Frequency</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={profile.walkingFrequency || ''}
+                    onChangeText={(value) => updateProfile('walkingFrequency', value)}
+                    placeholder="Daily, twice a day, weekly, etc."
+                  />
+                </View>
+              </>
+            )}
+          </View>
+        </>
+      )}
+
+      {/* Service preferences for sitters */}
+      {profile.userType === 'sitter' && (
+        <>
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>Services Offered</Text>
+            
+            <View style={styles.pickerContainer}>
+              <Text style={styles.pickerLabel}>Dog Sitting</Text>
+              <View style={styles.pickerButtons}>
+                <TouchableOpacity
+                  style={[
+                    styles.pickerButton,
+                    profile.providesSitting === true && styles.pickerButtonSelected
+                  ]}
+                  onPress={() => updateProfile('providesSitting', true)}
+                >
+                  <Text style={[
+                    styles.pickerButtonText,
+                    profile.providesSitting === true && styles.pickerButtonTextSelected
+                  ]}>
+                    Yes
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.pickerButton,
+                    profile.providesSitting === false && styles.pickerButtonSelected
+                  ]}
+                  onPress={() => updateProfile('providesSitting', false)}
+                >
+                  <Text style={[
+                    styles.pickerButtonText,
+                    profile.providesSitting === false && styles.pickerButtonTextSelected
+                  ]}>
+                    No
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.pickerContainer}>
+              <Text style={styles.pickerLabel}>Dog Walking</Text>
+              <View style={styles.pickerButtons}>
+                <TouchableOpacity
+                  style={[
+                    styles.pickerButton,
+                    profile.providesWalking === true && styles.pickerButtonSelected
+                  ]}
+                  onPress={() => updateProfile('providesWalking', true)}
+                >
+                  <Text style={[
+                    styles.pickerButtonText,
+                    profile.providesWalking === true && styles.pickerButtonTextSelected
+                  ]}>
+                    Yes
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.pickerButton,
+                    profile.providesWalking === false && styles.pickerButtonSelected
+                  ]}
+                  onPress={() => updateProfile('providesWalking', false)}
+                >
+                  <Text style={[
+                    styles.pickerButtonText,
+                    profile.providesWalking === false && styles.pickerButtonTextSelected
+                  ]}>
+                    No
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {profile.providesWalking && (
+              <>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Walking Duration Offered</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={profile.walkingDuration || ''}
+                    onChangeText={(value) => updateProfile('walkingDuration', value)}
+                    placeholder="30-60 minutes, flexible, etc."
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Walking Frequency Available</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={profile.walkingFrequency || ''}
+                    onChangeText={(value) => updateProfile('walkingFrequency', value)}
+                    placeholder="Daily, multiple times daily, weekends, etc."
+                  />
+                </View>
+              </>
+            )}
+          </View>
+        </>
+      )}
       
       <TouchableOpacity
         style={[styles.saveButton, loading && styles.saveButtonDisabled]}
