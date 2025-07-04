@@ -404,6 +404,12 @@ export default function EditProfileScreen({ userProfile, onSave, onCancel }: Edi
         </>
       )}
       
+      <Text style={styles.sectionHeader}>Location Information</Text>
+      {renderInput('Address', 'address')}
+      {renderInput('City', 'city')}
+      {renderInput('State/Province', 'state')}
+      {renderInput('ZIP/Postal Code', 'zipCode')}
+      
       <TouchableOpacity
         style={[styles.saveButton, loading && styles.saveButtonDisabled]}
         onPress={handleSave}
@@ -529,5 +535,24 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 40
+  },
+  sectionContainer: {
+    marginBottom: 20
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 16,
+    color: '#2563eb',
+    textAlign: 'center'
+  },
+  inputContainer: {
+    marginBottom: 12
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 8,
+    color: '#374151'
   }
 });

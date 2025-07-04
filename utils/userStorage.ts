@@ -219,3 +219,14 @@ export const updateUserProfile = async (updatedProfile: UserProfile): Promise<bo
     return false;
   }
 };
+
+// Get all user profiles (excluding current user)
+export const getAllUserProfiles = async (): Promise<UserProfile[]> => {
+  try {
+    const users = await getStoredUsers();
+    return users.map(user => user.profile);
+  } catch (error) {
+    console.error('Error getting all user profiles:', error);
+    return [];
+  }
+};

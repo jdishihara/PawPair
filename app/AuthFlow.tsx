@@ -9,6 +9,7 @@ import {
   View
 } from 'react-native';
 import { isEmailRegistered, saveUserProfile, setCurrentUser, validateLogin } from '../utils/userStorage';
+import { updateUserLocation } from '../utils/locationStorage';
 
 // Props now include userType callback
 type AuthFlowProps = {
@@ -66,6 +67,13 @@ export type UserProfile = {
   providesWalking?: boolean; // Sitter: provides walking service
   walkingDuration?: string; // Preferred walking duration (30min, 1hr, etc.)
   walkingFrequency?: string; // How often walks are needed/provided
+  // Location information
+  address?: string; // Full address input by user
+  city?: string; // City
+  state?: string; // State/Province
+  zipCode?: string; // Postal/ZIP code
+  latitude?: number; // Geocoded latitude
+  longitude?: number; // Geocoded longitude
 };
 
 const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
@@ -137,9 +145,30 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
     setLoading(true);
     
     try {
-      const success = await saveUserProfile(profile as UserProfile);
+      console.log('🚀 Starting profile submission...');
+      console.log('📝 Profile data:', {
+        address: profile.address,
+        city: profile.city,
+        state: profile.state,
+        zipCode: profile.zipCode
+      });
+      
+      // Geocode the user's address to get coordinates
+      let profileWithLocation = profile as UserProfile;
+      if (profile.address || profile.zipCode) {
+        console.log('📍 Geocoding address...');
+        profileWithLocation = await updateUserLocation(profile as UserProfile);
+        console.log('📍 After geocoding:', {
+          latitude: profileWithLocation.latitude,
+          longitude: profileWithLocation.longitude
+        });
+      } else {
+        console.log('❌ No address or ZIP code to geocode');
+      }
+      
+      const success = await saveUserProfile(profileWithLocation);
       if (success) {
-        await setCurrentUser(profile as UserProfile);
+        await setCurrentUser(profileWithLocation);
         setCurrentStep('complete');
       } else {
         Alert.alert('Error', 'Failed to save profile. Please try again.');
@@ -314,6 +343,12 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
         </View>
       )}
 
+      <Text style={styles.sectionHeader}>Location Information</Text>
+      {renderInput('Address', 'address')}
+      {renderInput('City', 'city')}
+      {renderInput('State/Province', 'state')}
+      {renderInput('ZIP/Postal Code', 'zipCode')}
+
       <TouchableOpacity
         style={styles.button}
         onPress={handleProfileSubmit}
@@ -442,6 +477,12 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <Text style={styles.sectionHeader}>Location Information</Text>
+      {renderInput('Address', 'address')}
+      {renderInput('City', 'city')}
+      {renderInput('State/Province', 'state')}
+      {renderInput('ZIP/Postal Code', 'zipCode')}
 
       <TouchableOpacity
         style={styles.button}
@@ -604,6 +645,12 @@ const styles = StyleSheet.create({
   },
   checkboxText: {
     fontSize: 16,
+    color: '#374151'
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 8,
     color: '#374151'
   }
 });

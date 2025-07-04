@@ -8,6 +8,7 @@ import AuthFlow, { UserType } from './AuthFlow';
 import CalendarScreen from './CalendarScreen';
 import DogSitterSwipe from './DogSitterSwipe';
 import MatchSwipeScreen from './DogSwipe';
+import MapScreen from './MapScreen';
 import MatchesScreen from './MatchesScreen';
 import MessagesScreen from './MessagesScreen';
 import OwnerProfileScreen from './OwnerProfileScreen';
@@ -74,6 +75,9 @@ function MainApp() {
             case 'Matches':
               iconName = 'favorite';
               break;
+            case 'Map':
+              iconName = 'location-on';
+              break;
             case 'Calendar':
               iconName = 'calendar-today';
               break;
@@ -129,6 +133,12 @@ function MainApp() {
         name="Matches"
         component={MatchesScreen}
         options={{ title: 'Your Matches' }}
+      />
+
+      <Tab.Screen
+        name="Map"
+        component={MapScreen}
+        options={{ title: 'Nearby Users' }}
       />
 
       <Tab.Screen
