@@ -7,16 +7,19 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { getUserConversations, ConversationWithProfile, getTotalUnreadCount } from '../utils/messageStorage';
+import { getUserConversations, ConversationWithProfile, getTotalUnreadCount, getBotMessages } from '../utils/messageStorage';
 import { getCurrentUser, getUserByEmail } from '../utils/userStorage';
 import ChatScreen from './ChatScreen';
+import ChatBotScreen from './ChatBotScreen';
 
 export default function MessagesScreen() {
   const [conversations, setConversations] = useState<ConversationWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedConversation, setSelectedConversation] = useState<ConversationWithProfile | null>(null);
+  const [selectedChatBot, setSelectedChatBot] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [botMessageCount, setBotMessageCount] = useState(0);
 
   useEffect(() => {
     loadData();
@@ -24,9 +27,10 @@ export default function MessagesScreen() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      loadConversations();
+      loadConversations(false); // Don't show loading indicator for background refresh
       loadUnreadCount();
-    }, 5000); // Refresh every 5 seconds
+      loadBotMessageCount();
+    }, 30000); // Refresh every 30 seconds instead of 5
 
     return () => clearInterval(interval);
   }, []);
@@ -35,6 +39,7 @@ export default function MessagesScreen() {
     await loadCurrentUser();
     await loadConversations();
     await loadUnreadCount();
+    await loadBotMessageCount();
   };
 
   const loadCurrentUser = async () => {
@@ -46,8 +51,8 @@ export default function MessagesScreen() {
     }
   };
 
-  const loadConversations = async () => {
-    setLoading(true);
+  const loadConversations = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const userConversations = await getUserConversations();
       
@@ -68,7 +73,7 @@ export default function MessagesScreen() {
     } catch (error) {
       console.error('Error loading conversations:', error);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -78,6 +83,15 @@ export default function MessagesScreen() {
       setUnreadCount(count);
     } catch (error) {
       console.error('Error loading unread count:', error);
+    }
+  };
+
+  const loadBotMessageCount = async () => {
+    try {
+      const botMessages = await getBotMessages();
+      setBotMessageCount(botMessages.length);
+    } catch (error) {
+      console.error('Error loading bot message count:', error);
     }
   };
 
@@ -146,6 +160,44 @@ export default function MessagesScreen() {
     );
   };
 
+  const renderPawBotItem = () => (
+    <TouchableOpacity
+      style={styles.conversationItem}
+      onPress={() => setSelectedChatBot(true)}
+    >
+      <View style={[styles.avatar, styles.botAvatar]}>
+        <Text style={styles.botEmoji}>🤖</Text>
+      </View>
+      
+      <View style={styles.conversationInfo}>
+        <View style={styles.conversationHeader}>
+          <Text style={styles.userName}>PawBot</Text>
+          <Text style={styles.timestamp}>🟢 Online</Text>
+        </View>
+        
+        <View style={styles.messagePreview}>
+          <Text style={styles.lastMessage} numberOfLines={1}>
+            {botMessageCount === 0 
+              ? "Hi! I'm here to help with pet care questions 🐕"
+              : `${botMessageCount} messages`}
+          </Text>
+          <Text style={styles.botBadge}>AI</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  if (selectedChatBot) {
+    return (
+      <ChatBotScreen
+        onBack={() => {
+          setSelectedChatBot(false);
+          loadBotMessageCount(); // Refresh bot message count when returning
+        }}
+      />
+    );
+  }
+
   if (selectedConversation) {
     return (
       <ChatScreen
@@ -154,7 +206,7 @@ export default function MessagesScreen() {
         otherUserName={selectedConversation.otherUserName}
         onBack={() => {
           setSelectedConversation(null);
-          loadConversations(); // Refresh conversations when returning
+          loadConversations(false); // Refresh conversations when returning without loading
           loadUnreadCount(); // Refresh unread count
         }}
       />
@@ -177,24 +229,31 @@ export default function MessagesScreen() {
           <ActivityIndicator size="large" color="#2563eb" />
           <Text style={styles.loadingText}>Loading conversations...</Text>
         </View>
-      ) : conversations.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyEmoji}>💬</Text>
-          <Text style={styles.emptyTitle}>No Messages Yet</Text>
-          <Text style={styles.emptySubtitle}>
-            Match with someone first, then you can start chatting! Go to your matches and tap &quot;Message&quot; to begin a conversation.
-          </Text>
-        </View>
       ) : (
-        <FlatList
-          data={conversations}
-          renderItem={renderConversationItem}
-          keyExtractor={(item) => item.conversation.id}
-          style={styles.conversationsList}
-          showsVerticalScrollIndicator={false}
-          refreshing={loading}
-          onRefresh={loadConversations}
-        />
+        <View style={styles.conversationsContainer}>
+          {/* PawBot at the top */}
+          {renderPawBotItem()}
+          
+          {conversations.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyEmoji}>💬</Text>
+              <Text style={styles.emptyTitle}>No Messages Yet</Text>
+              <Text style={styles.emptySubtitle}>
+                Match with someone first, then you can start chatting! Go to your matches and tap &quot;Message&quot; to begin a conversation.
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={conversations}
+              renderItem={renderConversationItem}
+              keyExtractor={(item) => item.conversation.id}
+              style={styles.conversationsList}
+              showsVerticalScrollIndicator={false}
+              refreshing={loading}
+              onRefresh={loadConversations}
+            />
+          )}
+        </View>
       )}
     </View>
   );
@@ -337,5 +396,24 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 10,
     fontWeight: '600'
+  },
+  conversationsContainer: {
+    flex: 1,
+  },
+  botAvatar: {
+    backgroundColor: '#eff6ff',
+  },
+  botEmoji: {
+    fontSize: 24,
+  },
+  botBadge: {
+    backgroundColor: '#2563eb',
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    overflow: 'hidden',
   }
 });

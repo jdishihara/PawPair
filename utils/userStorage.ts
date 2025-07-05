@@ -252,6 +252,7 @@ export const clearAllAppData = async (): Promise<void> => {
     // Messages and conversations
     await AsyncStorage.removeItem('pawpair_conversations');
     await AsyncStorage.removeItem('pawpair_messages');
+    await AsyncStorage.removeItem('pawpair_bot_messages');
     
     // Matches and swipes
     await AsyncStorage.removeItem('pawpair_swipes');
@@ -260,7 +261,7 @@ export const clearAllAppData = async (): Promise<void> => {
     // Availability
     await AsyncStorage.removeItem('pawpair_availability');
     
-    console.log('✅ ALL app data cleared successfully (users, matches, messages, availability)');
+    console.log('✅ ALL app data cleared successfully (users, matches, messages, bot messages, availability)');
   } catch (error) {
     console.error('❌ Error clearing all app data:', error);
   }

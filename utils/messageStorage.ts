@@ -3,6 +3,7 @@ import { getCurrentUser } from './userStorage';
 
 const CONVERSATIONS_KEY = 'pawpair_conversations';
 const MESSAGES_KEY = 'pawpair_messages';
+const BOT_MESSAGES_KEY = 'pawpair_bot_messages';
 
 export interface Message {
   id: string;
@@ -28,6 +29,14 @@ export interface ConversationWithProfile {
   conversation: Conversation;
   otherUserEmail: string;
   otherUserName: string;
+}
+
+export interface BotMessage {
+  id: string;
+  userEmail: string;
+  content: string;
+  isBot: boolean;
+  timestamp: string;
 }
 
 // Get all conversations
@@ -280,6 +289,81 @@ export const deleteConversation = async (conversationId: string): Promise<boolea
     return true;
   } catch (error) {
     console.error('Error deleting conversation:', error);
+    return false;
+  }
+};
+
+// Bot message functions
+const getStoredBotMessages = async (): Promise<BotMessage[]> => {
+  try {
+    const messagesJson = await AsyncStorage.getItem(BOT_MESSAGES_KEY);
+    return messagesJson ? JSON.parse(messagesJson) : [];
+  } catch (error) {
+    console.error('Error getting stored bot messages:', error);
+    return [];
+  }
+};
+
+export const saveBotMessage = async (content: string, isBot: boolean): Promise<boolean> => {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      console.error('No current user found');
+      return false;
+    }
+
+    const messages = await getStoredBotMessages();
+    
+    const newMessage: BotMessage = {
+      id: `bot_msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      userEmail: currentUser.email,
+      content: content.trim(),
+      isBot,
+      timestamp: new Date().toISOString()
+    };
+
+    messages.push(newMessage);
+    await AsyncStorage.setItem(BOT_MESSAGES_KEY, JSON.stringify(messages));
+    
+    return true;
+  } catch (error) {
+    console.error('Error saving bot message:', error);
+    return false;
+  }
+};
+
+export const getBotMessages = async (): Promise<BotMessage[]> => {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return [];
+    }
+
+    const messages = await getStoredBotMessages();
+    
+    return messages
+      .filter(message => message.userEmail === currentUser.email)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  } catch (error) {
+    console.error('Error getting bot messages:', error);
+    return [];
+  }
+};
+
+export const clearBotMessages = async (): Promise<boolean> => {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return false;
+    }
+
+    const messages = await getStoredBotMessages();
+    const filteredMessages = messages.filter(message => message.userEmail !== currentUser.email);
+    
+    await AsyncStorage.setItem(BOT_MESSAGES_KEY, JSON.stringify(filteredMessages));
+    return true;
+  } catch (error) {
+    console.error('Error clearing bot messages:', error);
     return false;
   }
 };
