@@ -7,11 +7,12 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Dimensions
+  Dimensions,
+  Image
 } from 'react-native';
 import MapView, { Marker, Circle, PROVIDER_GOOGLE, Region, Callout } from 'react-native-maps';
 import { UserProfile } from './AuthFlow';
-import { getCurrentUser, getAllUserProfiles, updateUserProfile } from '../utils/userStorage';
+import { getCurrentUser, getAllUserProfiles, updateUserProfile, clearAllAppData } from '../utils/userStorage';
 import { calculateDistance, getUsersNearLocation, updateUserLocation } from '../utils/locationStorage';
 
 interface LocationUser extends UserProfile {
@@ -200,12 +201,33 @@ export default function MapScreen() {
           latitude: user.latitude,
           longitude: user.longitude
         }}
-        pinColor={markerColor}
         title={`${user.firstName || ''} ${user.lastName || ''}`.trim()}
         description={`${isOwner ? 'Dog Owner' : 'Dog Sitter'}${user.distance && !isNaN(user.distance) ? ` • ${user.distance.toFixed(1)} mi away` : ''}`}
       >
+        {user.profilePhoto ? (
+          <View style={[styles.customMarker, { borderColor: markerColor }]}>
+            <Image 
+              source={{ uri: user.profilePhoto }} 
+              style={styles.markerImage}
+            />
+          </View>
+        ) : (
+          <View style={[styles.defaultMarker, { backgroundColor: markerColor }]}>
+            <MaterialIcons 
+              name={isOwner ? 'pets' : 'favorite'} 
+              size={20} 
+              color="white" 
+            />
+          </View>
+        )}
         <Callout tooltip>
           <View style={styles.calloutContainer}>
+            {user.profilePhoto && (
+              <Image 
+                source={{ uri: user.profilePhoto }} 
+                style={styles.calloutImage}
+              />
+            )}
             <Text style={styles.calloutTitle}>
               {`${user.firstName || ''} ${user.lastName || ''}`.trim()}
             </Text>
@@ -237,10 +259,26 @@ export default function MapScreen() {
           latitude: currentUser.latitude,
           longitude: currentUser.longitude
         }}
-        pinColor="#dc2626" // Red for current user
         title="Your Location"
         description={currentUser.address || "This is your current location"}
-      />
+      >
+        {currentUser.profilePhoto ? (
+          <View style={[styles.customMarker, styles.currentUserMarker]}>
+            <Image 
+              source={{ uri: currentUser.profilePhoto }} 
+              style={styles.markerImage}
+            />
+          </View>
+        ) : (
+          <View style={[styles.defaultMarker, styles.currentUserDefaultMarker]}>
+            <MaterialIcons 
+              name="location-on" 
+              size={20} 
+              color="white" 
+            />
+          </View>
+        )}
+      </Marker>
     );
   };
 
@@ -342,6 +380,29 @@ export default function MapScreen() {
             onPress={refreshAllUserLocations}
           >
             <MaterialIcons name="refresh" size={24} color="#2563eb" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: '#dc2626' }]}
+            onPress={async () => {
+              Alert.alert(
+                'Clear ALL App Data',
+                'This will delete ALL data: users, matches, messages, swipes, availability. Are you sure?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { 
+                    text: 'Clear Everything', 
+                    style: 'destructive',
+                    onPress: async () => {
+                      await clearAllAppData();
+                      await loadLocationData();
+                    }
+                  }
+                ]
+              );
+            }}
+          >
+            <MaterialIcons name="delete-forever" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
@@ -493,5 +554,51 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6b7280',
     marginBottom: 2,
+  },
+  customMarker: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 3,
+    borderColor: '#ffffff',
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  currentUserMarker: {
+    borderColor: '#dc2626',
+    borderWidth: 4,
+  },
+  defaultMarker: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  currentUserDefaultMarker: {
+    backgroundColor: '#dc2626',
+  },
+  markerImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  calloutImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginBottom: 8,
+    alignSelf: 'center',
   },
 });

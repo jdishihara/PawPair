@@ -230,3 +230,38 @@ export const getAllUserProfiles = async (): Promise<UserProfile[]> => {
     return [];
   }
 };
+
+// Clear all stored user data (for debugging/development)
+export const clearAllUserData = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem(USERS_KEY);
+    await AsyncStorage.removeItem(CURRENT_USER_KEY);
+    console.log('✅ All user data cleared successfully');
+  } catch (error) {
+    console.error('❌ Error clearing user data:', error);
+  }
+};
+
+// Clear ALL app data - users, matches, messages, availability
+export const clearAllAppData = async (): Promise<void> => {
+  try {
+    // User data
+    await AsyncStorage.removeItem(USERS_KEY);
+    await AsyncStorage.removeItem(CURRENT_USER_KEY);
+    
+    // Messages and conversations
+    await AsyncStorage.removeItem('pawpair_conversations');
+    await AsyncStorage.removeItem('pawpair_messages');
+    
+    // Matches and swipes
+    await AsyncStorage.removeItem('pawpair_swipes');
+    await AsyncStorage.removeItem('pawpair_matches');
+    
+    // Availability
+    await AsyncStorage.removeItem('pawpair_availability');
+    
+    console.log('✅ ALL app data cleared successfully (users, matches, messages, availability)');
+  } catch (error) {
+    console.error('❌ Error clearing all app data:', error);
+  }
+};

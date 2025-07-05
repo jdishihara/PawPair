@@ -10,11 +10,13 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.yourname.pawpair",
       "config": {
         "googleMapsApiKey": "YOUR_IOS_GOOGLE_MAPS_API_KEY"
       },
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "This app uses your location to find nearby dog sitters and owners in your area."
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to find nearby dog sitters and owners in your area.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload profile pictures."
       }
     },
     "android": {
@@ -30,7 +32,8 @@
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "READ_EXTERNAL_STORAGE"
       ]
     },
     "web": {

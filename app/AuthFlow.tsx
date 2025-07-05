@@ -6,8 +6,11 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  Image
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { isEmailRegistered, saveUserProfile, setCurrentUser, validateLogin } from '../utils/userStorage';
 import { updateUserLocation } from '../utils/locationStorage';
 
@@ -33,6 +36,7 @@ export type UserProfile = {
   lastName: string;
   phone: string;
   userType: UserType;
+  profilePhoto?: string; // Base64 encoded image or file URI
   emergencyContact?: string;
   experience?: string;
   homeType?: 'apartment' | 'house' | 'house_with_yard';
@@ -81,9 +85,42 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
   const [isLogin, setIsLogin] = useState(true);
   const [profile, setProfile] = useState<Partial<UserProfile>>({});
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const updateProfile = (field: keyof UserProfile, value: any) => {
     setProfile(prev => ({ ...prev, [field]: value }));
+  };
+
+  const pickImage = async () => {
+    try {
+      // Request permission to access media library
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1], // Square aspect ratio
+        quality: 0.8,
+        base64: true, // Get base64 for storage
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const base64 = result.assets[0].base64;
+        
+        // Store as data URI for consistent handling
+        const dataUri = `data:image/jpeg;base64,${base64}`;
+        updateProfile('profilePhoto', dataUri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
   };
 
   const handleAuth = async () => {
@@ -195,6 +232,55 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
     />
   );
 
+  const renderPasswordInput = (
+    placeholder: string,
+    key: keyof UserProfile
+  ) => (
+    <View style={styles.passwordContainer}>
+      <TextInput
+        style={styles.passwordInput}
+        placeholder={placeholder}
+        value={profile[key]?.toString() || ''}
+        secureTextEntry={!showPassword}
+        onChangeText={text => updateProfile(key, text)}
+      />
+      <TouchableOpacity
+        style={styles.eyeButton}
+        onPress={() => setShowPassword(!showPassword)}
+      >
+        <MaterialIcons
+          name={showPassword ? 'visibility' : 'visibility-off'}
+          size={24}
+          color="#6b7280"
+        />
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderPhotoUpload = () => (
+    <View style={styles.photoUploadContainer}>
+      <Text style={styles.photoLabel}>Profile Photo</Text>
+      <TouchableOpacity style={styles.photoUploadButton} onPress={pickImage}>
+        {profile.profilePhoto ? (
+          <Image source={{ uri: profile.profilePhoto }} style={styles.profileImage} />
+        ) : (
+          <View style={styles.photoPlaceholder}>
+            <MaterialIcons name="add-a-photo" size={40} color="#6b7280" />
+            <Text style={styles.photoPlaceholderText}>Add Photo</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+      {profile.profilePhoto && (
+        <TouchableOpacity 
+          style={styles.removePhotoButton}
+          onPress={() => updateProfile('profilePhoto', undefined)}
+        >
+          <Text style={styles.removePhotoText}>Remove Photo</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
   const renderAuthScreen = () => (
     <View style={styles.centeredContainer}>
       <Text style={styles.emoji}>🐾</Text>
@@ -203,7 +289,7 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
         {isLogin ? 'Welcome back!' : 'Join the pack!'}
       </Text>
       {renderInput('Email', 'email', 'email-address')}
-      {renderInput('Password', 'password')}
+      {renderPasswordInput('Password', 'password')}
       <TouchableOpacity
         style={styles.button}
         onPress={handleAuth}
@@ -254,6 +340,7 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
       <Text style={styles.header}>Owner Profile</Text>
       
       <Text style={styles.sectionHeader}>Personal Information</Text>
+      {renderPhotoUpload()}
       {renderInput('First Name', 'firstName')}
       {renderInput('Last Name', 'lastName')}
       {renderInput('Phone Number', 'phone', 'phone-pad')}
@@ -364,6 +451,7 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
   const renderSitterProfileScreen = () => (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Sitter Profile</Text>
+      {renderPhotoUpload()}
       {renderInput('First Name', 'firstName')}
       {renderInput('Last Name', 'lastName')}
       {renderInput('Phone Number', 'phone', 'phone-pad')}
@@ -547,6 +635,25 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderRadius: 8
   },
+  passwordContainer: {
+    position: 'relative',
+    width: '100%',
+    marginBottom: 10,
+  },
+  passwordInput: {
+    width: '100%',
+    padding: 12,
+    paddingRight: 50,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
+    padding: 4,
+  },
   button: {
     backgroundColor: '#2563eb',
     padding: 14,
@@ -652,6 +759,51 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 8,
     color: '#374151'
+  },
+  photoUploadContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  photoLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 12,
+    color: '#374151',
+  },
+  photoUploadButton: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  photoPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoPlaceholderText: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
+  },
+  removePhotoButton: {
+    marginTop: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  removePhotoText: {
+    fontSize: 12,
+    color: '#dc2626',
   }
 });
 
