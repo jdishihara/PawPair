@@ -254,6 +254,9 @@ export default function DogSitterSwipe() {
             setSwipeLabel(null);
           }
         }}
+        verticalSwipe={false}
+        disableTopSwipe={true}
+        disableBottomSwipe={true}
         stackSize={3}
         backgroundColor={'#f0f0f0'}
       />
