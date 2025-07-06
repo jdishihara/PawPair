@@ -14,6 +14,7 @@ import { UserProfile } from './AuthFlow';
 import { getUsersByType } from '../utils/userStorage';
 import { getSwipedUsers, saveSwipeDecision } from '../utils/matchStorage';
 import { useSearch } from '../contexts/SearchContext';
+import ReportModal from '../components/ReportModal';
 
 const FlipCard = ({ profile }: { profile: UserProfile }) => {
   const flipAnim = useRef(new Animated.Value(0)).current;
@@ -139,6 +140,10 @@ export default function MatchSwipeScreen() {
   const [dogOwners, setDogOwners] = useState<UserProfile[]>([]);
   const [swipeLabel, setSwipeLabel] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportedUser, setReportedUser] = useState<UserProfile | null>(null);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const swiperRef = useRef<any>(null);
   const { openSearch } = useSearch();
 
   useEffect(() => {
@@ -173,6 +178,7 @@ export default function MatchSwipeScreen() {
       const success = await saveSwipeDecision(owner.email, 'interested');
       if (success) {
         console.log('✅ Swipe decision saved');
+        setCurrentCardIndex(index + 1);
       } else {
         Alert.alert('Error', 'Failed to save your interest. Please try again.');
       }
@@ -188,11 +194,43 @@ export default function MatchSwipeScreen() {
       const success = await saveSwipeDecision(owner.email, 'pass');
       if (success) {
         console.log('✅ Pass decision saved');
+        setCurrentCardIndex(index + 1);
       } else {
         Alert.alert('Error', 'Failed to save your decision. Please try again.');
       }
     }
     setSwipeLabel(null);
+  };
+
+  const handleReportButtonPress = () => {
+    console.log('Report button pressed!');
+    console.log('Total dog owners available:', dogOwners.length);
+    console.log('Current card index:', currentCardIndex);
+    
+    // Use the current card index to get the correct card being displayed
+    if (dogOwners.length > 0 && currentCardIndex < dogOwners.length) {
+      const currentCard = dogOwners[currentCardIndex];
+      console.log('Reporting current card:', currentCard.firstName, currentCard.lastName);
+      setReportedUser(currentCard);
+      setShowReportModal(true);
+    } else {
+      console.log('No cards available or index out of bounds');
+      Alert.alert('No Cards', 'No cards available to report.');
+    }
+  };
+
+  const handleReportSubmitted = () => {
+    // Remove the reported user from the current stack only when report is actually submitted
+    if (reportedUser) {
+      setDogOwners(prev => prev.filter(owner => owner.email !== reportedUser.email));
+    }
+    setReportedUser(null);
+  };
+
+  const handleReportCancelled = () => {
+    // Don't remove the user from stack when report is cancelled
+    setShowReportModal(false);
+    setReportedUser(null);
   };
 
   if (loading) {
@@ -226,6 +264,7 @@ export default function MatchSwipeScreen() {
       </View>
       
       <Swiper
+        ref={swiperRef}
         cards={dogOwners}
         renderCard={(owner: UserProfile | undefined) => {
           if (!owner) {
@@ -250,12 +289,36 @@ export default function MatchSwipeScreen() {
             setSwipeLabel(null);
           }
         }}
+        cardIndex={currentCardIndex}
         verticalSwipe={false}
         disableTopSwipe={true}
         disableBottomSwipe={true}
         stackSize={3}
         backgroundColor={'#f0f0f0'}
       />
+
+      {/* Report Button */}
+      <View style={styles.bottomContainer}>
+        <TouchableOpacity 
+          style={[styles.reportButton, (dogOwners.length === 0) && styles.reportButtonDisabled]}
+          onPress={handleReportButtonPress}
+          disabled={dogOwners.length === 0}
+        >
+          <MaterialIcons name="report" size={20} color="#dc2626" />
+          <Text style={styles.reportButtonText}>Report User</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Report Modal */}
+      {reportedUser && (
+        <ReportModal
+          visible={showReportModal}
+          reportedUserEmail={reportedUser.email}
+          reportedUserName={`${reportedUser.firstName} ${reportedUser.lastName}`}
+          onClose={handleReportCancelled}
+          onReportSubmitted={handleReportSubmitted}
+        />
+      )}
     </View>
   );
 }
@@ -457,5 +520,42 @@ const styles = StyleSheet.create({
     color: '#dc2626',
     padding: 12,
     borderRadius: 10
+  },
+  bottomContainer: {
+    position: 'absolute',
+    bottom: 40,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    zIndex: 1000,
+    elevation: 10,
+    pointerEvents: 'box-none'
+  },
+  reportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: '#dc2626',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 15,
+    zIndex: 1001,
+    pointerEvents: 'auto'
+  },
+  reportButtonText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#dc2626'
+  },
+  reportButtonDisabled: {
+    opacity: 0.5
   }
 });
