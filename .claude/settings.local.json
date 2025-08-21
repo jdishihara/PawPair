@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(curl:*)",
+      "Bash(tar:*)",
+      "Bash(sudo mv:*)",
+      "Bash(mv:*)",
+      "Bash(export PATH=$PATH:~/mongodb/bin)",
+      "Bash(~/mongodb/bin/mongod:*)",
+      "Bash(cp:*)",
+      "Bash(node:*)",
+      "Bash(npx:*)",
+      "Bash(rm:*)",
+      "Bash(npm run lint)",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)"
+    ],
+    "deny": []
+  }
+}

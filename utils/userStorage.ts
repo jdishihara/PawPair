@@ -5,10 +5,12 @@ const USERS_KEY = 'pawpair_users';
 const CURRENT_USER_KEY = 'pawpair_current_user';
 
 export interface StoredUser {
+  id: string; // Add unique ID for each user
   email: string;
   password: string;
   profile: UserProfile;
   createdAt: string;
+  updatedAt: string; // Track when profile was last updated
 }
 
 // Get all registered users
@@ -31,10 +33,12 @@ export const saveUserProfile = async (profile: UserProfile): Promise<boolean> =>
     const existingUserIndex = users.findIndex(user => user.email === profile.email);
     
     const newUser: StoredUser = {
+      id: existingUserIndex >= 0 ? users[existingUserIndex].id : Date.now().toString() + Math.random().toString(36).substr(2, 9),
       email: profile.email,
       password: profile.password,
       profile,
-      createdAt: new Date().toISOString()
+      createdAt: existingUserIndex >= 0 ? users[existingUserIndex].createdAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     
     if (existingUserIndex >= 0) {
@@ -239,6 +243,70 @@ export const clearAllUserData = async (): Promise<void> => {
     console.log('✅ All user data cleared successfully');
   } catch (error) {
     console.error('❌ Error clearing user data:', error);
+  }
+};
+
+// Get account statistics
+export const getAccountStatistics = async (): Promise<{
+  totalUsers: number;
+  owners: number;
+  sitters: number;
+  verifiedUsers: number;
+  usersWithPhotos: number;
+  recentSignups: number; // Last 7 days
+}> => {
+  try {
+    const users = await getStoredUsers();
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    
+    return {
+      totalUsers: users.length,
+      owners: users.filter(u => u.profile.userType === 'owner').length,
+      sitters: users.filter(u => u.profile.userType === 'sitter').length,
+      verifiedUsers: users.filter(u => u.profile.phone && u.profile.firstName && u.profile.lastName).length,
+      usersWithPhotos: users.filter(u => u.profile.profilePhoto).length,
+      recentSignups: users.filter(u => new Date(u.createdAt) > oneWeekAgo).length
+    };
+  } catch (error) {
+    console.error('Error getting account statistics:', error);
+    return {
+      totalUsers: 0,
+      owners: 0,
+      sitters: 0,
+      verifiedUsers: 0,
+      usersWithPhotos: 0,
+      recentSignups: 0
+    };
+  }
+};
+
+// Export account data (for backup/debugging)
+export const exportAccountData = async (): Promise<string> => {
+  try {
+    const users = await getStoredUsers();
+    const currentUser = await getCurrentUser();
+    const stats = await getAccountStatistics();
+    
+    const exportData = {
+      timestamp: new Date().toISOString(),
+      statistics: stats,
+      currentUser: currentUser ? { email: currentUser.email, userType: currentUser.userType } : null,
+      users: users.map(user => ({
+        id: user.id,
+        email: user.email,
+        userType: user.profile.userType,
+        name: `${user.profile.firstName} ${user.profile.lastName}`,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        hasProfilePhoto: !!user.profile.profilePhoto,
+        location: user.profile.city && user.profile.state ? `${user.profile.city}, ${user.profile.state}` : 'Not provided'
+      }))
+    };
+    
+    return JSON.stringify(exportData, null, 2);
+  } catch (error) {
+    console.error('Error exporting account data:', error);
+    return JSON.stringify({ error: 'Failed to export data' }, null, 2);
   }
 };
 
