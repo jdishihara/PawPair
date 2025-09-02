@@ -10,11 +10,11 @@ import {
   View
 } from 'react-native';
 import Swiper from 'react-native-deck-swiper';
-import { UserProfile } from './AuthFlow';
-import { getUsersByType } from '../utils/userStorage';
-import { getSwipedUsers, saveSwipeDecision } from '../utils/matchStorage';
-import { useSearch } from '../contexts/SearchContext';
 import ReportModal from '../components/ReportModal';
+import { useSearch } from '../contexts/SearchContext';
+import { getSwipedUsers, saveSwipeDecision } from '../utils/matchStorage';
+import { getUsersByType } from '../utils/userStorage';
+import { UserProfile } from './AuthFlow';
 
 const FlipCard = ({ profile }: { profile: UserProfile }) => {
   const flipAnim = useRef(new Animated.Value(0)).current;
@@ -508,8 +508,8 @@ const styles = StyleSheet.create({
   interested: {
     fontSize: 36,
     fontWeight: 'bold',
-    backgroundColor: '#fef3c7',
-    color: '#d97706',
+    backgroundColor: '#bdf7deff',
+    color: '#2df99dff',
     padding: 12,
     borderRadius: 10
   },
