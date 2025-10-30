@@ -4,6 +4,31 @@ import { getCurrentUser } from './userStorage';
 const CONVERSATIONS_KEY = 'pawpair_conversations';
 const MESSAGES_KEY = 'pawpair_messages';
 const BOT_MESSAGES_KEY = 'pawpair_bot_messages';
+const BOOKING_REQUESTS_KEY = 'pawpair_booking_requests';
+
+export interface BookingRequest {
+  id: string;
+  conversationId: string;
+  requesterId: string; // Dog owner email
+  sitterId: string; // Dog sitter email
+  status: 'pending' | 'accepted' | 'declined';
+  // Booking details
+  date: string; // ISO date string
+  startTime: string; // e.g., "09:00"
+  endTime: string; // e.g., "17:00"
+  duration: string; // e.g., "8 hours"
+  address: string;
+  // Dog information
+  dogName: string;
+  dogBreed: string;
+  dogAge: string;
+  dogWeight: string;
+  dogSize?: 'small' | 'medium' | 'large' | 'extra_large';
+  specialInstructions?: string;
+  // Metadata
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface Message {
   id: string;
@@ -13,6 +38,9 @@ export interface Message {
   content: string;
   timestamp: string;
   read: boolean;
+  // Optional: reference to booking request if this is a booking-related message
+  bookingRequestId?: string;
+  messageType?: 'text' | 'booking_request' | 'booking_response';
 }
 
 export interface Conversation {
@@ -359,11 +387,203 @@ export const clearBotMessages = async (): Promise<boolean> => {
 
     const messages = await getStoredBotMessages();
     const filteredMessages = messages.filter(message => message.userEmail !== currentUser.email);
-    
+
     await AsyncStorage.setItem(BOT_MESSAGES_KEY, JSON.stringify(filteredMessages));
     return true;
   } catch (error) {
     console.error('Error clearing bot messages:', error);
     return false;
+  }
+};
+
+// ==================== BOOKING REQUEST FUNCTIONS ====================
+
+// Get all booking requests
+const getStoredBookingRequests = async (): Promise<BookingRequest[]> => {
+  try {
+    const requestsJson = await AsyncStorage.getItem(BOOKING_REQUESTS_KEY);
+    return requestsJson ? JSON.parse(requestsJson) : [];
+  } catch (error) {
+    console.error('Error getting stored booking requests:', error);
+    return [];
+  }
+};
+
+// Create a booking request
+export const createBookingRequest = async (
+  conversationId: string,
+  sitterEmail: string,
+  bookingDetails: Omit<BookingRequest, 'id' | 'conversationId' | 'requesterId' | 'sitterId' | 'status' | 'createdAt' | 'updatedAt'>
+): Promise<string | null> => {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      console.error('No current user found');
+      return null;
+    }
+
+    const requests = await getStoredBookingRequests();
+    const messages = await getStoredMessages();
+
+    // Create booking request
+    const newRequest: BookingRequest = {
+      id: `booking_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      conversationId,
+      requesterId: currentUser.email,
+      sitterId: sitterEmail,
+      status: 'pending',
+      ...bookingDetails,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    requests.push(newRequest);
+    await AsyncStorage.setItem(BOOKING_REQUESTS_KEY, JSON.stringify(requests));
+
+    // Create a message for the booking request
+    const bookingMessage: Message = {
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      conversationId,
+      senderId: currentUser.email,
+      receiverId: sitterEmail,
+      content: `Booking request for ${bookingDetails.dogName} on ${bookingDetails.date}`,
+      timestamp: new Date().toISOString(),
+      read: false,
+      bookingRequestId: newRequest.id,
+      messageType: 'booking_request'
+    };
+
+    messages.push(bookingMessage);
+    await AsyncStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
+
+    // Update conversation
+    const conversations = await getStoredConversations();
+    const conversationIndex = conversations.findIndex(conv => conv.id === conversationId);
+    if (conversationIndex >= 0) {
+      conversations[conversationIndex].lastMessage = bookingMessage;
+      conversations[conversationIndex].lastMessageAt = bookingMessage.timestamp;
+      await AsyncStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(conversations));
+    }
+
+    console.log('✅ Booking request created:', newRequest.id);
+    return newRequest.id;
+  } catch (error) {
+    console.error('Error creating booking request:', error);
+    return null;
+  }
+};
+
+// Get booking request by ID
+export const getBookingRequest = async (requestId: string): Promise<BookingRequest | null> => {
+  try {
+    const requests = await getStoredBookingRequests();
+    return requests.find(req => req.id === requestId) || null;
+  } catch (error) {
+    console.error('Error getting booking request:', error);
+    return null;
+  }
+};
+
+// Update booking request status
+export const updateBookingRequestStatus = async (
+  requestId: string,
+  status: 'accepted' | 'declined'
+): Promise<boolean> => {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      console.error('No current user found');
+      return false;
+    }
+
+    const requests = await getStoredBookingRequests();
+    const requestIndex = requests.findIndex(req => req.id === requestId);
+
+    if (requestIndex === -1) {
+      console.error('Booking request not found');
+      return false;
+    }
+
+    const request = requests[requestIndex];
+
+    // Verify current user is the sitter
+    if (request.sitterId !== currentUser.email) {
+      console.error('User is not authorized to update this request');
+      return false;
+    }
+
+    // Update status
+    requests[requestIndex] = {
+      ...request,
+      status,
+      updatedAt: new Date().toISOString()
+    };
+
+    await AsyncStorage.setItem(BOOKING_REQUESTS_KEY, JSON.stringify(requests));
+
+    // Send a response message
+    const messages = await getStoredMessages();
+    const responseMessage: Message = {
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      conversationId: request.conversationId,
+      senderId: currentUser.email,
+      receiverId: request.requesterId,
+      content: `Booking request ${status === 'accepted' ? 'accepted' : 'declined'}`,
+      timestamp: new Date().toISOString(),
+      read: false,
+      bookingRequestId: requestId,
+      messageType: 'booking_response'
+    };
+
+    messages.push(responseMessage);
+    await AsyncStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
+
+    // Update conversation
+    const conversations = await getStoredConversations();
+    const conversationIndex = conversations.findIndex(conv => conv.id === request.conversationId);
+    if (conversationIndex >= 0) {
+      conversations[conversationIndex].lastMessage = responseMessage;
+      conversations[conversationIndex].lastMessageAt = responseMessage.timestamp;
+      await AsyncStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(conversations));
+    }
+
+    console.log(`✅ Booking request ${status}:`, requestId);
+    return true;
+  } catch (error) {
+    console.error('Error updating booking request status:', error);
+    return false;
+  }
+};
+
+// Get all booking requests for current user (as requester or sitter)
+export const getUserBookingRequests = async (): Promise<BookingRequest[]> => {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return [];
+    }
+
+    const requests = await getStoredBookingRequests();
+
+    return requests
+      .filter(req => req.requesterId === currentUser.email || req.sitterId === currentUser.email)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } catch (error) {
+    console.error('Error getting user booking requests:', error);
+    return [];
+  }
+};
+
+// Get booking requests for a conversation
+export const getConversationBookingRequests = async (conversationId: string): Promise<BookingRequest[]> => {
+  try {
+    const requests = await getStoredBookingRequests();
+
+    return requests
+      .filter(req => req.conversationId === conversationId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } catch (error) {
+    console.error('Error getting conversation booking requests:', error);
+    return [];
   }
 };

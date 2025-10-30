@@ -19,6 +19,8 @@ import {
   removeAvailabilitySlot,
   setFullDayAvailability
 } from '../utils/availabilityStorage';
+import { getUserBookingRequests, BookingRequest } from '../utils/messageStorage';
+import { getCurrentUser, getUserByEmail } from '../utils/userStorage';
 
 export default function CalendarScreen() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -27,6 +29,9 @@ export default function CalendarScreen() {
   const [selectedDateSlots, setSelectedDateSlots] = useState<AvailabilitySlot[]>([]);
   const [showAddSlotModal, setShowAddSlotModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [bookings, setBookings] = useState<BookingRequest[]>([]);
+  const [selectedDateBookings, setSelectedDateBookings] = useState<BookingRequest[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // Add slot form state
   const [startTime, setStartTime] = useState('09:00');
@@ -34,15 +39,26 @@ export default function CalendarScreen() {
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
+    loadCurrentUser();
     loadAvailability();
+    loadBookings();
   }, [currentMonth]);
+
+  const loadCurrentUser = async () => {
+    try {
+      const user = await getCurrentUser();
+      setCurrentUser(user);
+    } catch (error) {
+      console.error('Error loading current user:', error);
+    }
+  };
 
   const loadAvailability = async () => {
     setLoading(true);
     try {
       const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
       const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-      
+
       const startDate = firstDay.toISOString().split('T')[0];
       const endDate = lastDay.toISOString().split('T')[0];
 
@@ -55,11 +71,29 @@ export default function CalendarScreen() {
     }
   };
 
+  const loadBookings = async () => {
+    try {
+      const userBookings = await getUserBookingRequests();
+      // Filter only accepted bookings
+      const acceptedBookings = userBookings.filter(booking => booking.status === 'accepted');
+      setBookings(acceptedBookings);
+    } catch (error) {
+      console.error('Error loading bookings:', error);
+    }
+  };
+
   const getDayAvailability = (date: string): DayAvailability | undefined => {
     return availability.find(day => day.date === date);
   };
 
-  const getDayStatus = (date: string): 'available' | 'partial' | 'unavailable' | 'none' => {
+  const getDayBookings = (date: string): BookingRequest[] => {
+    return bookings.filter(booking => booking.date === date);
+  };
+
+  const getDayStatus = (date: string): 'available' | 'partial' | 'unavailable' | 'booked' | 'none' => {
+    const dayBookings = getDayBookings(date);
+    if (dayBookings.length > 0) return 'booked';
+
     const dayAvail = getDayAvailability(date);
     if (!dayAvail || dayAvail.slots.length === 0) return 'none';
     if (dayAvail.isFullyAvailable) return 'available';
@@ -109,6 +143,8 @@ export default function CalendarScreen() {
     setSelectedDate(date);
     const dayAvail = getDayAvailability(date);
     setSelectedDateSlots(dayAvail?.slots || []);
+    const dayBookings = getDayBookings(date);
+    setSelectedDateBookings(dayBookings);
   };
 
   const handleAddSlot = async () => {
@@ -216,6 +252,9 @@ export default function CalendarScreen() {
     }
 
     switch (status) {
+      case 'booked':
+        dayStyle.push(styles.bookedDay);
+        break;
       case 'available':
         dayStyle.push(styles.availableDay);
         break;
@@ -236,12 +275,60 @@ export default function CalendarScreen() {
       >
         <Text style={textStyle}>{dayNumber}</Text>
         {status !== 'none' && (
-          <View style={[styles.statusDot, 
+          <View style={[styles.statusDot,
+            status === 'booked' ? styles.bookedDot :
             status === 'available' ? styles.availableDot :
             status === 'partial' ? styles.partialDot : styles.unavailableDot
           ]} />
         )}
       </TouchableOpacity>
+    );
+  };
+
+  const BookingItem = ({ booking, currentUser }: { booking: BookingRequest; currentUser: any }) => {
+    const isOwner = currentUser?.userType === 'owner';
+
+    return (
+      <View style={styles.bookingItem}>
+        <View style={styles.bookingHeader}>
+          <MaterialIcons name="event" size={20} color="#2563eb" />
+          <Text style={styles.bookingTitle}>
+            {isOwner ? `Sitting with ${booking.sitterId}` : `Sitting for ${booking.requesterId}`}
+          </Text>
+        </View>
+
+        <View style={styles.bookingDetails}>
+          <View style={styles.bookingRow}>
+            <MaterialIcons name="access-time" size={16} color="#6b7280" />
+            <Text style={styles.bookingText}>
+              {formatTime(booking.startTime)} - {formatTime(booking.endTime)}
+            </Text>
+          </View>
+
+          <View style={styles.bookingRow}>
+            <MaterialIcons name="pets" size={16} color="#6b7280" />
+            <Text style={styles.bookingText}>
+              {booking.dogName} ({booking.dogBreed})
+            </Text>
+          </View>
+
+          <View style={styles.bookingRow}>
+            <MaterialIcons name="location-on" size={16} color="#6b7280" />
+            <Text style={styles.bookingText} numberOfLines={1}>
+              {booking.address}
+            </Text>
+          </View>
+
+          {booking.specialInstructions && (
+            <View style={styles.bookingRow}>
+              <MaterialIcons name="info-outline" size={16} color="#6b7280" />
+              <Text style={styles.bookingText} numberOfLines={2}>
+                {booking.specialInstructions}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
     );
   };
 
@@ -308,16 +395,16 @@ export default function CalendarScreen() {
       {/* Legend */}
       <View style={styles.legend}>
         <View style={styles.legendItem}>
+          <View style={[styles.legendDot, styles.bookedDot]} />
+          <Text style={styles.legendText}>Booked</Text>
+        </View>
+        <View style={styles.legendItem}>
           <View style={[styles.legendDot, styles.availableDot]} />
           <Text style={styles.legendText}>Available</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, styles.partialDot]} />
-          <Text style={styles.legendText}>Partially Available</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, styles.unavailableDot]} />
-          <Text style={styles.legendText}>Not Available</Text>
+          <Text style={styles.legendText}>Partial</Text>
         </View>
       </View>
 
@@ -344,15 +431,29 @@ export default function CalendarScreen() {
             </View>
           </View>
 
-          {selectedDateSlots.length === 0 ? (
-            <Text style={styles.noSlotsText}>No availability set for this day</Text>
-          ) : (
-            <FlatList
-              data={selectedDateSlots}
-              renderItem={renderSlotItem}
-              keyExtractor={(item) => item.id}
-              style={styles.slotsList}
-            />
+          {/* Bookings Section */}
+          {selectedDateBookings.length > 0 && (
+            <View style={styles.bookingsSection}>
+              <Text style={styles.bookingsSectionTitle}>Bookings</Text>
+              {selectedDateBookings.map((booking) => (
+                <BookingItem key={booking.id} booking={booking} currentUser={currentUser} />
+              ))}
+            </View>
+          )}
+
+          {/* Availability Slots Section */}
+          {selectedDateSlots.length === 0 && selectedDateBookings.length === 0 ? (
+            <Text style={styles.noSlotsText}>No availability or bookings for this day</Text>
+          ) : selectedDateSlots.length > 0 && (
+            <View>
+              <Text style={styles.slotsSectionTitle}>Availability</Text>
+              <FlatList
+                data={selectedDateSlots}
+                renderItem={renderSlotItem}
+                keyExtractor={(item) => item.id}
+                style={styles.slotsList}
+              />
+            </View>
           )}
         </View>
       )}
@@ -518,6 +619,9 @@ const styles = StyleSheet.create({
   unavailableDay: {
     backgroundColor: '#fef2f2'
   },
+  bookedDay: {
+    backgroundColor: '#dbeafe'
+  },
   statusDot: {
     position: 'absolute',
     bottom: 2,
@@ -534,6 +638,9 @@ const styles = StyleSheet.create({
   },
   unavailableDot: {
     backgroundColor: '#dc2626'
+  },
+  bookedDot: {
+    backgroundColor: '#2563eb'
   },
   legend: {
     flexDirection: 'row',
@@ -604,6 +711,56 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
     marginTop: 32
+  },
+  bookingsSection: {
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb'
+  },
+  bookingsSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12
+  },
+  bookingItem: {
+    backgroundColor: '#eff6ff',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#bfdbfe'
+  },
+  bookingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 6
+  },
+  bookingTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2563eb'
+  },
+  bookingDetails: {
+    gap: 6
+  },
+  bookingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  bookingText: {
+    fontSize: 14,
+    color: '#374151',
+    flex: 1
+  },
+  slotsSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12
   },
   slotsList: {
     flex: 1

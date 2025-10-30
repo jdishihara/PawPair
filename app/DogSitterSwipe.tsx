@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -51,9 +52,25 @@ const FlipCard = ({ profile }: { profile: UserProfile }) => {
           ]}
         >
           <View style={styles.sitterImagePlaceholder}>
-            <Text style={styles.sitterEmoji}>❤️</Text>
+            {profile.profilePhoto ? (
+              <Image
+                source={{ uri: profile.profilePhoto }}
+                style={styles.sitterImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <Text style={styles.sitterEmoji}>{profile.isCareKarma ? '🎓' : '❤️'}</Text>
+            )}
           </View>
+          {profile.isCareKarma && (
+            <View style={styles.careKarmaBadge}>
+              <Text style={styles.careKarmaBadgeText}>⭐ Care Karma Member</Text>
+            </View>
+          )}
           <Text style={styles.sitterName}>{profile.firstName} {profile.lastName}</Text>
+          {profile.isCareKarma && (
+            <Text style={styles.serviceHoursText}>{profile.serviceHours || 0} service hours earned</Text>
+          )}
           {profile.experience && (
             <Text style={styles.experience}>Experience: {profile.experience}</Text>
           )}
@@ -84,10 +101,19 @@ const FlipCard = ({ profile }: { profile: UserProfile }) => {
           ]}
         >
           <Text style={styles.sitterName}>{profile.firstName} {profile.lastName}</Text>
-          
+
+          {profile.isCareKarma && (
+            <View style={styles.careKarmaBadge}>
+              <Text style={styles.careKarmaBadgeText}>🎓 Care Karma - {profile.serviceHours || 0} hours</Text>
+            </View>
+          )}
+
           <View style={styles.contactSection}>
             <Text style={styles.contactInfo}>📞 {profile.phone}</Text>
             <Text style={styles.contactInfo}>📧 {profile.email}</Text>
+            {profile.isCareKarma && profile.schoolName && (
+              <Text style={styles.contactInfo}>🏫 {profile.schoolName}</Text>
+            )}
           </View>
           
           {profile.experience && (
@@ -411,7 +437,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#fef3c7',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20
+    marginBottom: 20,
+    overflow: 'hidden'
+  },
+  sitterImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60
   },
   sitterEmoji: {
     fontSize: 48
@@ -557,5 +589,25 @@ const styles = StyleSheet.create({
   },
   reportButtonDisabled: {
     opacity: 0.5
+  },
+  careKarmaBadge: {
+    backgroundColor: '#f0fdf4',
+    borderColor: '#10b981',
+    borderWidth: 1.5,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginBottom: 8
+  },
+  careKarmaBadgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#059669'
+  },
+  serviceHoursText: {
+    fontSize: 14,
+    color: '#047857',
+    fontWeight: '500',
+    marginBottom: 8
   }
 });

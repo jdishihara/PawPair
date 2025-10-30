@@ -27,6 +27,7 @@ export type AuthStep =
   | 'userType'
   | 'ownerProfile'
   | 'sitterProfile'
+  | 'careKarmaProfile'
   | 'complete';
 
 export type UserProfile = {
@@ -43,6 +44,11 @@ export type UserProfile = {
   hasOtherPets?: boolean;
   maxDistance?: number;
   preferredSizes?: string[];
+  // Care Karma fields
+  isCareKarma?: boolean; // Flag for high school students earning service hours
+  serviceHours?: number; // Total community service hours earned
+  schoolName?: string; // High school name
+  graduationYear?: string; // Expected graduation year
   // Dog information for owners
   dogName?: string;
   dogBreed?: string;
@@ -159,9 +165,15 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
     }
   };
 
-  const handleUserTypeSelection = (type: UserType) => {
+  const handleUserTypeSelection = (type: UserType, isCareKarma: boolean = false) => {
     updateProfile('userType', type);
-    setCurrentStep(type === 'owner' ? 'ownerProfile' : 'sitterProfile');
+    if (isCareKarma) {
+      updateProfile('isCareKarma', true);
+      updateProfile('serviceHours', 0);
+      setCurrentStep('careKarmaProfile');
+    } else {
+      setCurrentStep(type === 'owner' ? 'ownerProfile' : 'sitterProfile');
+    }
   };
 
   const handleProfileSubmit = async () => {
@@ -327,9 +339,19 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
         onPress={() => handleUserTypeSelection('sitter')}
       >
         <Text style={styles.emoji}>❤️</Text>
-        <Text style={styles.title}>Care for dogs</Text>
+        <Text style={styles.title}>Care for dogs (Get Paid)</Text>
         <Text style={styles.subtext}>
-          I want to spend time with dogs temporarily
+          I want to spend time with dogs and earn money
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.card, styles.careKarmaCard]}
+        onPress={() => handleUserTypeSelection('sitter', true)}
+      >
+        <Text style={styles.emoji}>🎓</Text>
+        <Text style={styles.title}>Care Karma - Earn Service Hours</Text>
+        <Text style={styles.subtext}>
+          High school students: care for dogs and earn community service hours
         </Text>
       </TouchableOpacity>
     </View>
@@ -429,6 +451,154 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
           </View>
         </View>
       )}
+
+      <Text style={styles.sectionHeader}>Location Information</Text>
+      {renderInput('Address', 'address')}
+      {renderInput('City', 'city')}
+      {renderInput('State/Province', 'state')}
+      {renderInput('ZIP/Postal Code', 'zipCode')}
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleProfileSubmit}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>
+          {loading ? 'Creating Profile...' : 'Complete Profile'}
+        </Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+
+  const renderCareKarmaProfileScreen = () => (
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.careKarmaBanner}>
+        <Text style={styles.careKarmaEmoji}>🎓✨</Text>
+        <Text style={styles.careKarmaTitle}>Care Karma Profile</Text>
+        <Text style={styles.careKarmaSubtitle}>
+          Earn community service hours while caring for dogs!
+        </Text>
+      </View>
+
+      <Text style={styles.sectionHeader}>Personal Information</Text>
+      {renderPhotoUpload()}
+      {renderInput('First Name', 'firstName')}
+      {renderInput('Last Name', 'lastName')}
+      {renderInput('Phone Number', 'phone', 'phone-pad')}
+
+      <Text style={styles.sectionHeader}>School Information</Text>
+      {renderInput('High School Name', 'schoolName')}
+      {renderInput('Expected Graduation Year', 'graduationYear')}
+
+      <View style={styles.infoBox}>
+        <MaterialIcons name="info" size={20} color="#2563eb" />
+        <Text style={styles.infoText}>
+          Your service hours will be tracked automatically. You&apos;ll earn hours for each dog sitting session you complete.
+        </Text>
+      </View>
+
+      <Text style={styles.sectionHeader}>Dog Care Experience</Text>
+      {renderInput('Experience with dogs', 'experience')}
+      {renderInput('Max Distance (miles)', 'maxDistance', 'numeric')}
+
+      <Text style={styles.sectionHeader}>Availability Preferences</Text>
+      <View style={styles.timeContainer}>
+        <View style={styles.timeInput}>
+          <Text style={styles.label}>Preferred Start Time</Text>
+          <TextInput
+            style={styles.input}
+            value={profile.preferredStartTime || ''}
+            onChangeText={(value) => setProfile(prev => ({ ...prev, preferredStartTime: value }))}
+            placeholder="15:00 (After school)"
+          />
+        </View>
+        <View style={styles.timeInput}>
+          <Text style={styles.label}>Preferred End Time</Text>
+          <TextInput
+            style={styles.input}
+            value={profile.preferredEndTime || ''}
+            onChangeText={(value) => setProfile(prev => ({ ...prev, preferredEndTime: value }))}
+            placeholder="20:00"
+          />
+        </View>
+      </View>
+
+      <Text style={styles.label}>Services Offered</Text>
+      <View style={styles.checkboxContainer}>
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => setProfile(prev => ({ ...prev, providesSitting: !prev.providesSitting }))}
+        >
+          <Text style={styles.checkboxText}>
+            {profile.providesSitting ? '✅' : '☐'} I provide dog sitting services
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => setProfile(prev => ({ ...prev, providesWalking: !prev.providesWalking }))}
+        >
+          <Text style={styles.checkboxText}>
+            {profile.providesWalking ? '✅' : '☐'} I provide dog walking services
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {profile.providesWalking && (
+        <View>
+          <Text style={styles.label}>Walking Service Details</Text>
+          <View style={styles.timeContainer}>
+            <View style={styles.timeInput}>
+              <Text style={styles.label}>Walk duration offered</Text>
+              <TextInput
+                style={styles.input}
+                value={profile.walkingDuration || ''}
+                onChangeText={(value) => setProfile(prev => ({ ...prev, walkingDuration: value }))}
+                placeholder="30-60 minutes"
+              />
+            </View>
+            <View style={styles.timeInput}>
+              <Text style={styles.label}>Available frequency</Text>
+              <TextInput
+                style={styles.input}
+                value={profile.walkingFrequency || ''}
+                onChangeText={(value) => setProfile(prev => ({ ...prev, walkingFrequency: value }))}
+                placeholder="Daily/Weekly"
+              />
+            </View>
+          </View>
+        </View>
+      )}
+
+      <Text style={styles.label}>Care Options</Text>
+      <View style={styles.checkboxContainer}>
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => setProfile(prev => ({ ...prev, shortNotice: !prev.shortNotice }))}
+        >
+          <Text style={styles.checkboxText}>
+            {profile.shortNotice ? '✅' : '☐'} Available for short notice requests
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => setProfile(prev => ({ ...prev, weekendCare: !prev.weekendCare }))}
+        >
+          <Text style={styles.checkboxText}>
+            {profile.weekendCare ? '✅' : '☐'} Available on weekends
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => setProfile(prev => ({ ...prev, holidayCare: !prev.holidayCare }))}
+        >
+          <Text style={styles.checkboxText}>
+            {profile.holidayCare ? '✅' : '☐'} Available on holidays
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <Text style={styles.sectionHeader}>Location Information</Text>
       {renderInput('Address', 'address')}
@@ -586,13 +756,21 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
 
   const renderCompleteScreen = () => (
     <View style={styles.centeredContainer}>
-      <Text style={styles.emoji}>🎉</Text>
+      <Text style={styles.emoji}>{profile.isCareKarma ? '🎓' : '🎉'}</Text>
       <Text style={styles.header}>Welcome to PawPair!</Text>
       <Text style={styles.subtext}>
         {profile.userType === 'owner'
           ? "You're all set! Start finding trusted sitters for your furry friend."
+          : profile.isCareKarma
+          ? "You're all set! Start earning community service hours by caring for dogs."
           : "You're all set! Start browsing dogs that need care."}
       </Text>
+      {profile.isCareKarma && (
+        <View style={styles.serviceHoursDisplay}>
+          <Text style={styles.serviceHoursLabel}>Service Hours Earned:</Text>
+          <Text style={styles.serviceHoursValue}>{profile.serviceHours || 0} hours</Text>
+        </View>
+      )}
       <TouchableOpacity
         style={styles.button}
         onPress={() => onAuthComplete(profile.userType!)}
@@ -602,21 +780,87 @@ const AuthFlow = ({ onAuthComplete }: AuthFlowProps) => {
     </View>
   );
 
+  let content;
   switch (currentStep) {
     case 'login':
     case 'signup':
-      return renderAuthScreen();
+      content = renderAuthScreen();
+      break;
     case 'userType':
-      return renderUserTypeScreen();
+      content = renderUserTypeScreen();
+      break;
     case 'ownerProfile':
-      return renderOwnerProfileScreen();
+      content = renderOwnerProfileScreen();
+      break;
     case 'sitterProfile':
-      return renderSitterProfileScreen();
+      content = renderSitterProfileScreen();
+      break;
+    case 'careKarmaProfile':
+      content = renderCareKarmaProfileScreen();
+      break;
     case 'complete':
-      return renderCompleteScreen();
+      content = renderCompleteScreen();
+      break;
     default:
-      return renderAuthScreen();
+      content = renderAuthScreen();
   }
+
+  return (
+    <View style={{ flex: 1 }}>
+      {content}
+
+      {/* Dev buttons - only show on login screen */}
+      {(currentStep === 'login' || currentStep === 'signup') && isLogin && (
+        <>
+          <TouchableOpacity
+            style={styles.devButtonLeft}
+            onPress={async () => {
+              try {
+                const { generateTestUsers } = await import('../utils/generateTestUsers');
+                await generateTestUsers();
+                Alert.alert(
+                  'Demo Users Loaded',
+                  '20 test users created!\n\nPassword: password123\n\nOwner: sarah.owner@test.com\nSitter: alex.rodriguez@test.com'
+                );
+              } catch (error) {
+                Alert.alert('Error', 'Failed to load demo users');
+              }
+            }}
+          >
+            <Text style={styles.devButtonText}>📦 Load</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.devButtonRight}
+            onPress={async () => {
+              Alert.alert(
+                'Clear All Data',
+                'Delete all users and app data?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Clear All',
+                    style: 'destructive',
+                    onPress: async () => {
+                      try {
+                        const { clearAllAppData } = await import('../utils/userStorage');
+                        await clearAllAppData();
+                        Alert.alert('Success', 'All data cleared!');
+                      } catch (error) {
+                        Alert.alert('Error', 'Failed to clear data');
+                      }
+                    }
+                  }
+                ]
+              );
+            }}
+          >
+            <Text style={styles.devButtonText}>🗑️ Clear</Text>
+          </TouchableOpacity>
+        </>
+      )}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
@@ -804,7 +1048,106 @@ const styles = StyleSheet.create({
   removePhotoText: {
     fontSize: 12,
     color: '#dc2626',
-  }
+  },
+  careKarmaCard: {
+    borderColor: '#10b981',
+    backgroundColor: '#f0fdf4',
+    borderWidth: 2,
+  },
+  careKarmaBanner: {
+    backgroundColor: '#f0fdf4',
+    borderColor: '#10b981',
+    borderWidth: 2,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  careKarmaEmoji: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  careKarmaTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#059669',
+    marginBottom: 4,
+  },
+  careKarmaSubtitle: {
+    fontSize: 14,
+    color: '#047857',
+    textAlign: 'center',
+  },
+  infoBox: {
+    flexDirection: 'row',
+    backgroundColor: '#eff6ff',
+    borderColor: '#2563eb',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    alignItems: 'flex-start',
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1e40af',
+    marginLeft: 8,
+    lineHeight: 20,
+  },
+  serviceHoursDisplay: {
+    backgroundColor: '#f0fdf4',
+    borderColor: '#10b981',
+    borderWidth: 2,
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 16,
+    alignItems: 'center',
+    width: '100%',
+  },
+  serviceHoursLabel: {
+    fontSize: 16,
+    color: '#047857',
+    marginBottom: 8,
+  },
+  serviceHoursValue: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#059669',
+  },
+  devButtonLeft: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    backgroundColor: '#6B7280',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  devButtonRight: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  devButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
 });
 
 export default AuthFlow;

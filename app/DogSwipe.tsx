@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -51,7 +52,15 @@ const FlipCard = ({ profile }: { profile: UserProfile }) => {
           ]}
         >
           <View style={styles.dogImagePlaceholder}>
-            <Text style={styles.dogEmoji}>🐕</Text>
+            {profile.profilePhoto ? (
+              <Image
+                source={{ uri: profile.profilePhoto }}
+                style={styles.dogImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <Text style={styles.dogEmoji}>🐕</Text>
+            )}
           </View>
           <Text style={styles.dogName}>{profile.dogName || 'Furry Friend'}</Text>
           <Text style={styles.dogBreed}>{profile.dogBreed || 'Mixed Breed'}</Text>
@@ -408,7 +417,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#e5e7eb',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20
+    marginBottom: 20,
+    overflow: 'hidden'
+  },
+  dogImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60
   },
   dogEmoji: {
     fontSize: 48

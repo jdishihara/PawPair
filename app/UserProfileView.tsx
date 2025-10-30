@@ -20,10 +20,21 @@ export default function UserProfileView({ userProfile, onBack, onMessage }: User
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {isOwner ? 'Dog Owner Profile' : 'Dog Sitter Profile'}
+          {isOwner ? 'Dog Owner Profile' : userProfile.isCareKarma ? 'Care Karma Sitter' : 'Dog Sitter Profile'}
         </Text>
       </View>
-      
+
+      {userProfile.isCareKarma && (
+        <View style={styles.careKarmaBanner}>
+          <Text style={styles.careKarmaEmoji}>🎓✨</Text>
+          <Text style={styles.careKarmaTitle}>Care Karma Member</Text>
+          <Text style={styles.serviceHoursValue}>{userProfile.serviceHours || 0} hours</Text>
+          <Text style={styles.careKarmaSubtitle}>
+            High school student earning community service hours
+          </Text>
+        </View>
+      )}
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Contact Information</Text>
         <Text style={styles.info}>Name: {userProfile.firstName} {userProfile.lastName}</Text>
@@ -31,6 +42,12 @@ export default function UserProfileView({ userProfile, onBack, onMessage }: User
         <Text style={styles.info}>Phone: {userProfile.phone}</Text>
         {userProfile.emergencyContact && (
           <Text style={styles.info}>Emergency Contact: {userProfile.emergencyContact}</Text>
+        )}
+        {userProfile.isCareKarma && userProfile.schoolName && (
+          <Text style={styles.info}>School: {userProfile.schoolName}</Text>
+        )}
+        {userProfile.isCareKarma && userProfile.graduationYear && (
+          <Text style={styles.info}>Expected Graduation: {userProfile.graduationYear}</Text>
         )}
       </View>
 
@@ -238,5 +255,36 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16
+  },
+  careKarmaBanner: {
+    backgroundColor: '#f0fdf4',
+    borderColor: '#10b981',
+    borderWidth: 2,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+    width: '100%'
+  },
+  careKarmaEmoji: {
+    fontSize: 40,
+    marginBottom: 8
+  },
+  careKarmaTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#059669',
+    marginBottom: 8
+  },
+  careKarmaSubtitle: {
+    fontSize: 14,
+    color: '#047857',
+    marginTop: 8,
+    textAlign: 'center'
+  },
+  serviceHoursValue: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#059669'
   }
 });

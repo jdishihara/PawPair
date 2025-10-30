@@ -22,11 +22,11 @@ PawBot is an AI assistant that helps users with pet care questions and PawPair a
 ### 2. Add API Key
 Open `utils/chatBotService.ts` and replace:
 ```typescript
-const OPENAI_API_KEY = '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';
+const OPENAI_API_KEY = 'OPENAI_API_KEY';
 ```
 With your actual API key:
 ```typescript
-const OPENAI_API_KEY = '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';
+const OPENAI_API_KEY = 'OPENAI_API_KEY';
 ```
 
 ### 3. Cost Information

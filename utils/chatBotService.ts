@@ -1,11 +1,16 @@
 // utils/chatBotService.ts
 import OpenAI from 'openai';
 
-// Note: In production, store API key securely (environment variables or secure storage)
-const OPENAI_API_KEY = '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'; // Replace with your actual API key
+// Read API key from environment variables
+// Note: In Expo, you can use either OPENAI_API_KEY or EXPO_PUBLIC_OPENAI_API_KEY
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+
+if (!OPENAI_API_KEY) {
+  console.warn('⚠️  OPENAI_API_KEY not found in environment variables. Chatbot will use fallback responses.');
+}
 
 const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY,
+  apiKey: OPENAI_API_KEY || 'dummy-key', // Fallback to prevent crashes
 });
 
 const SYSTEM_PROMPT = `You are PawBot, a friendly and knowledgeable AI assistant for PawPair - a dog sitting and walking app that connects dog owners with trusted dog sitters. 
@@ -48,11 +53,17 @@ export class ChatBotService {
   ];
 
   async sendMessage(userMessage: string): Promise<string> {
+    // If no API key, use fallback responses
+    if (!OPENAI_API_KEY || OPENAI_API_KEY === 'dummy-key') {
+      console.log('Using fallback response (no API key configured)');
+      return this.getFallbackResponse(userMessage);
+    }
+
     try {
       // Add user message to conversation history
-      this.conversationHistory.push({ 
-        role: 'user', 
-        content: userMessage 
+      this.conversationHistory.push({
+        role: 'user',
+        content: userMessage
       });
 
       // Call OpenAI API
@@ -63,13 +74,13 @@ export class ChatBotService {
         temperature: 0.7,
       });
 
-      const botResponse = completion.choices[0]?.message?.content || 
+      const botResponse = completion.choices[0]?.message?.content ||
         "I'm sorry, I couldn't process that request. Please try again! 🐕";
 
       // Add bot response to conversation history
-      this.conversationHistory.push({ 
-        role: 'assistant', 
-        content: botResponse 
+      this.conversationHistory.push({
+        role: 'assistant',
+        content: botResponse
       });
 
       // Keep conversation history manageable (last 10 exchanges)

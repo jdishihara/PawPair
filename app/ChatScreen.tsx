@@ -16,9 +16,13 @@ import {
   getConversationMessages,
   markConversationAsRead,
   sendMessage,
-  Message
+  Message,
+  getBookingRequest,
+  BookingRequest
 } from '../utils/messageStorage';
 import { getCurrentUser } from '../utils/userStorage';
+import { BookingRequestModal } from '../components/BookingRequestModal';
+import { BookingRequestCard } from '../components/BookingRequestCard';
 
 interface ChatScreenProps {
   conversationId: string;
@@ -38,6 +42,8 @@ export default function ChatScreen({
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [bookingRequests, setBookingRequests] = useState<Map<string, BookingRequest>>(new Map());
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -67,7 +73,19 @@ export default function ChatScreen({
     try {
       const conversationMessages = await getConversationMessages(conversationId);
       setMessages(conversationMessages);
-      
+
+      // Load booking requests for messages that have them
+      const requests = new Map<string, BookingRequest>();
+      for (const msg of conversationMessages) {
+        if (msg.bookingRequestId) {
+          const booking = await getBookingRequest(msg.bookingRequestId);
+          if (booking) {
+            requests.set(msg.bookingRequestId, booking);
+          }
+        }
+      }
+      setBookingRequests(requests);
+
       // Scroll to bottom when messages load
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: false });
@@ -127,11 +145,40 @@ export default function ChatScreen({
     }
   };
 
+  const handleBookingRequestSuccess = () => {
+    loadMessages(false);
+  };
+
+  const handleBookingStatusUpdate = () => {
+    loadMessages(false);
+  };
+
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isOwn = currentUser && item.senderId === currentUser.email;
-    const showTime = index === 0 || 
-      (messages[index - 1] && 
+    const showTime = index === 0 ||
+      (messages[index - 1] &&
        new Date(item.timestamp).getTime() - new Date(messages[index - 1].timestamp).getTime() > 300000); // 5 minutes
+
+    // If this is a booking request message, render the booking card
+    if (item.messageType === 'booking_request' && item.bookingRequestId) {
+      const booking = bookingRequests.get(item.bookingRequestId);
+      if (booking) {
+        return (
+          <View style={styles.messageContainer}>
+            {showTime && (
+              <Text style={styles.messageTime}>
+                {formatMessageTime(item.timestamp)}
+              </Text>
+            )}
+            <BookingRequestCard
+              bookingRequest={booking}
+              isOwner={booking.requesterId === currentUser.email}
+              onStatusUpdate={handleBookingStatusUpdate}
+            />
+          </View>
+        );
+      }
+    }
 
     return (
       <View style={styles.messageContainer}>
@@ -190,6 +237,17 @@ export default function ChatScreen({
               <Text style={styles.headerStatus}>Active now</Text>
             </View>
           </View>
+
+          <View style={styles.headerActions}>
+            {currentUser && currentUser.userType === 'owner' && (
+              <TouchableOpacity
+                style={styles.bookingButton}
+                onPress={() => setShowBookingModal(true)}
+              >
+                <MaterialIcons name="calendar-today" size={20} color="#2563eb" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Messages */}
@@ -238,6 +296,16 @@ export default function ChatScreen({
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Booking Request Modal */}
+        <BookingRequestModal
+          visible={showBookingModal}
+          conversationId={conversationId}
+          sitterEmail={otherUserEmail}
+          sitterName={otherUserName}
+          onClose={() => setShowBookingModal(false)}
+          onSuccess={handleBookingRequestSuccess}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -287,6 +355,16 @@ const styles = StyleSheet.create({
   headerStatus: {
     fontSize: 12,
     color: '#16a34a'
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  bookingButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#eff6ff'
   },
   loadingContainer: {
     flex: 1,
